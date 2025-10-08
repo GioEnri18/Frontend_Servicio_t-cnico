@@ -93,7 +93,8 @@ const ServiceDetailPage: React.FC = () => {
       navigate('/quotations/new', { 
         state: { 
           serviceId: service.id,
-          serviceName: service.name 
+          serviceName: service.name,
+          serviceSlug: service.slug
         } 
       });
     }
@@ -126,45 +127,52 @@ const ServiceDetailPage: React.FC = () => {
   if (!service) return null; // No debería ocurrir si el manejo de error es correcto
 
   return (
-    // Asume que la página se renderiza dentro de un layout que ya tiene el Header principal
-    <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto px-4 py-12">
-        <div className="bg-white p-8 rounded-2xl shadow-lg grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
-          
-          {/* Columna de la Imagen */}
-          <div>
+    <div className={styles.serviceDetailPage}>
+      <div className={styles.container}>
+        {/* Botón de regreso */}
+        <Link to="/dashboard" className={styles.backButton}>
+          <ArrowLeftIcon />
+          Volver al Dashboard
+        </Link>
+
+        {/* Tarjeta principal del servicio */}
+        <div className={styles.serviceCard}>
+          {/* Sección de imagen */}
+          <div className={styles.imageSection}>
             <img 
               src={service.imageUrl} 
               alt={service.name}
-              className="w-full h-full object-cover rounded-xl shadow-md"
+              className={styles.serviceImage}
             />
           </div>
 
-          {/* Columna de Detalles */}
-          <div className="flex flex-col justify-center">
-            <p className="text-indigo-600 font-semibold mb-2">{service.category}</p>
-            <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4">
+          {/* Sección de contenido */}
+          <div className={styles.contentSection}>
+            <span className={styles.category}>{service.category}</span>
+            
+            <h1 className={styles.title}>
               {service.name}
             </h1>
-            <p className="text-gray-600 text-lg leading-relaxed mb-6">
+            
+            <p className={styles.description}>
               {service.description}
             </p>
             
-            <div className="mt-auto pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Precio base de referencia</p>
-                  <p className="text-4xl font-bold text-gray-800">
-                    S/. {service.priceBase.toFixed(2)}
-                  </p>
-                </div>
-                <button 
-                  onClick={handleQuoteRedirect}
-                  className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300"
-                >
-                  Cotizar este Servicio
-                </button>
+            {/* Sección de precio y cotización */}
+            <div className={styles.priceSection}>
+              <div className={styles.priceInfo}>
+                <p className={styles.priceLabel}>Precio base de referencia</p>
+                <p className={styles.price}>
+                  S/. {service.priceBase.toFixed(2)}
+                </p>
               </div>
+              
+              <button 
+                onClick={handleQuoteRedirect}
+                className={styles.quoteButton}
+              >
+                Cotizar este Servicio
+              </button>
             </div>
           </div>
         </div>

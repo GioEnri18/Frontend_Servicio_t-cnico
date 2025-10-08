@@ -1,7 +1,5 @@
-// ruta: frontend/src/pages/DashboardPage.tsx
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // Importar Link
+import { Link, useNavigate } from 'react-router-dom'; // Importar Link y useNavigate
 import styles from './DashboardPage.module.css';
 
 // --- Iconos SVG (sin cambios) ---
@@ -27,12 +25,10 @@ const mockServices: Service[] = [
 
 const DashboardPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const navigate = useNavigate(); // Inicializar useNavigate
 
   // Simulación de la llamada a la API GET /services
   useEffect(() => {
-    // En una aplicación real, aquí iría la llamada con apiClient:
-    // apiClient.get('/services').then(response => setServices(response.data));
     setServices(mockServices);
   }, []);
 
@@ -49,15 +45,9 @@ const DashboardPage: React.FC = () => {
           <Link to="/dashboard">Inicio</Link>
           
           {/* --- Menú Desplegable de Servicios --- */}
-          <div 
-            className={styles.navItemContainer}
-            onMouseEnter={() => setShowDropdown(true)}
-            onMouseLeave={() => setShowDropdown(false)}
-          >
-            <span className={styles.navItem}>
-              Servicios ▼
-            </span>
-            <div className={`${styles.dropdownMenu} ${showDropdown ? styles.dropdownVisible : ''}`}>
+          <div className={styles.navItemContainer}>
+            <span className={styles.navItem}>Servicios</span>
+            <div className={styles.dropdownMenu}>
               {services.map((service) => (
                 <Link key={service.id} to={`/services/${service.slug}`} className={styles.dropdownLink}>
                   {service.name}
@@ -66,7 +56,7 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          <Link to="/quotations">Cotizaciones</Link>
+          <Link to="/cotizaciones">Cotizaciones</Link>
           <Link to="/customers">Clientes</Link>
         </nav>
         <div className={styles.headerRight}>
@@ -74,7 +64,7 @@ const DashboardPage: React.FC = () => {
             <span className={styles.searchIcon}><SearchIcon /></span>
             <input type="search" placeholder="Buscar..." className={styles.searchInput} />
           </div>
-          <button className={styles.profileButton}>Perfil</button>
+          <button onClick={() => navigate('/profile')} className={styles.profileButton}>Perfil</button>
         </div>
       </header>
 
