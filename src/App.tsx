@@ -12,6 +12,7 @@ import QuoteProcessingPage from './pages/admin/QuoteProcessingPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ClientManagementPage from './pages/admin/ClientManagementPage'; // Importar página de clientes
 import CreateQuotePage from './pages/admin/CreateQuotePage'; // Nueva página de crear cotización
+import ClientesPage from './pages/ClientesPage'; // Nueva página de clientes
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -63,6 +64,11 @@ function App() {
       <Route path="/cotizaciones/new" element={
         <ProtectedRoute>
           <CreateQuotePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/clientes" element={
+        <ProtectedRoute>
+          <ClientesPage />
         </ProtectedRoute>
       } />
 

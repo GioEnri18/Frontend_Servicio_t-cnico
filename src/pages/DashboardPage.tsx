@@ -57,7 +57,7 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <Link to="/cotizaciones">Cotizaciones</Link>
-          <Link to="/customers">Clientes</Link>
+          <Link to="/clientes">Clientes</Link>
         </nav>
         <div className={styles.headerRight}>
           <div className={styles.searchContainer}>
