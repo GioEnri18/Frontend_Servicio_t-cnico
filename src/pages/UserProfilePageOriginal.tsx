@@ -1,29 +1,21 @@
 // ruta: frontend/src/pages/UserProfilePage.tsx
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthContext } from '../context/AuthContext';
 import { authService } from '../services/api';
 import styles from './UserProfilePage.module.css';
 
 // --- Tipos ---
 interface UserProfile {
   id: string;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string; // Para compatibilidad con datos estáticos
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string;
-  company?: string;
-  position?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  avatar?: string;
-  memberSince?: string;
-  createdAt?: string; // Fecha del backend
-  totalQuotes?: number;
-  completedProjects?: number;
-  role?: 'customer' | 'admin' | 'technician' | 'employee';
+  role: 'customer' | 'admin' | 'technician' | 'employee';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // --- Iconos SVG ---
@@ -87,109 +79,56 @@ const LogOutIcon = () => (
 
 const UserProfilePage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, loading, logout } = useAuthContext();
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Datos por defecto (fallback)
-  const defaultProfileData: UserProfile = {
-    id: '1',
-    fullName: 'Usuario Anónimo',
-    email: 'usuario@tedics.com',
-    phone: '+502 0000-0000',
-    company: 'TEDICS Guatemala',
-    position: 'Usuario',
-    address: 'Ciudad de Guatemala',
-    city: 'Guatemala',
-    country: 'Guatemala',
-    avatar: '',
-    memberSince: '2023-01-15',
-    totalQuotes: 0,
-    completedProjects: 0,
-    role: 'customer'
-  };
-
-  const [profileData, setProfileData] = useState<UserProfile>(defaultProfileData);
-  const [editForm, setEditForm] = useState<UserProfile>(defaultProfileData);
+  const [isLoading, setIsLoading] = useState(false);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
+  const [editForm, setEditForm] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    loadUserProfile();
-  }, []);
+    if (!isAuthenticated && !loading) {
+      navigate('/login');
+      return;
+    }
 
-  const loadUserProfile = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Verificar si hay token
-      const token = localStorage.getItem('jwt_token');
-      if (!token) {
-        console.log('No hay token, usando datos por defecto');
-        setIsLoading(false);
-        return;
-      }
-
-      // Intentar obtener perfil del backend
-      const userProfile = await authService.getProfile();
-      console.log('Datos del perfil obtenidos:', userProfile);
-      
-      // Transformar datos del backend al formato esperado
-      const transformedProfile: UserProfile = {
-        id: userProfile.id || '1',
-        firstName: userProfile.firstName || '',
-        lastName: userProfile.lastName || '',
-        fullName: userProfile.firstName && userProfile.lastName 
-          ? `${userProfile.firstName} ${userProfile.lastName}`
-          : userProfile.fullName || 'Usuario',
-        email: userProfile.email || 'usuario@tedics.com',
-        phone: userProfile.phone || '',
-        role: userProfile.role as 'customer' | 'admin' | 'technician' | 'employee' || 'customer',
-        memberSince: userProfile.createdAt || '2023-01-15',
-        createdAt: userProfile.createdAt,
-        // Datos por defecto para campos que no vienen del backend
-        company: 'TEDICS Guatemala',
-        position: userProfile.role === 'admin' ? 'Administrador' : 
-                 userProfile.role === 'technician' ? 'Técnico' : 'Cliente',
-        address: 'Ciudad de Guatemala',
-        city: 'Guatemala',
-        country: 'Guatemala',
-        avatar: '',
-        totalQuotes: 0,
-        completedProjects: 0
+    if (user) {
+      // Convertir los datos del usuario del contexto al formato UserProfile
+      const userProfile: UserProfile = {
+        id: user.id,
+        firstName: user.firstName || user.name?.split(' ')[0] || '',
+        lastName: user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role as 'customer' | 'admin' | 'technician' | 'employee',
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       };
+      setProfileData(userProfile);
+      setEditForm(userProfile);
+    }
+  }, [user, isAuthenticated, loading, navigate]);
 
-      setProfileData(transformedProfile);
-      setEditForm(transformedProfile);
-      
-    } catch (error: any) {
-      console.error('Error al cargar perfil del usuario:', error);
-      setError('No se pudieron cargar los datos del perfil. Usando datos por defecto.');
-      
-      // Si hay error, usar datos por defecto pero con email del localStorage si existe
-      const userEmail = localStorage.getItem('user_email');
-      if (userEmail) {
-        const fallbackProfile = {
-          ...defaultProfileData,
-          email: userEmail,
-          fullName: 'Usuario Logueado'
-        };
-        setProfileData(fallbackProfile);
-        setEditForm(fallbackProfile);
-      }
-    } finally {
-      setIsLoading(false);
+  const handleEdit = () => {
+    if (profileData) {
+      setEditForm({ ...profileData });
+      setIsEditing(true);
     }
   };
 
-  const handleEdit = () => {
-    setEditForm(profileData);
-    setIsEditing(true);
-  };
-
-  const handleSave = () => {
-    setProfileData(editForm);
-    setIsEditing(false);
-    // Aquí iría la llamada al API para guardar
+  const handleSave = async () => {
+    if (!editForm) return;
+    
+    setIsLoading(true);
+    try {
+      // Aquí iría la llamada al API para actualizar el perfil
+      // const updatedProfile = await authService.updateProfile(editForm);
+      setProfileData(editForm);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -198,14 +137,29 @@ const UserProfilePage: React.FC = () => {
   };
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
+    if (!editForm) return;
     setEditForm(prev => ({
-      ...prev,
+      ...prev!,
+      [field]: value
+    }));
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  if (loading || !profileData) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loading}>Cargando perfil...</div>
+      </div>
+    );
       [field]: value
     }));
   };
 
   const handleLogout = () => {
-    // Aquí iría la lógica de logout
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('user_email');
     navigate('/login');
@@ -225,25 +179,12 @@ const UserProfilePage: React.FC = () => {
   return (
     <div className={styles.profilePage}>
       <div className={styles.container}>
-        {/* Mostrar error si existe */}
-        {error && (
-          <div style={{ 
-            backgroundColor: '#f8d7da', 
-            color: '#721c24', 
-            padding: '10px', 
-            borderRadius: '5px', 
-            marginBottom: '20px',
-            border: '1px solid #f5c6cb'
-          }}>
-            ⚠️ {error}
-          </div>
-        )}
         {/* Header */}
         <div className={styles.header}>
-          <button onClick={() => navigate('/dashboard')} className={styles.backButton}>
+          <Link to="/dashboard" className={styles.backButton}>
             <ArrowLeftIcon />
             Volver al Dashboard
-          </button>
+          </Link>
           <h1 className={styles.pageTitle}>Mi Perfil</h1>
           <p className={styles.pageSubtitle}>Gestiona tu información personal y configuración</p>
         </div>
@@ -259,72 +200,77 @@ const UserProfilePage: React.FC = () => {
                   <UserIcon />
                 )}
               </div>
+              <button className={styles.avatarButton}>Cambiar Foto</button>
             </div>
-            <div className={styles.userInfo}>
+            
+            <div className={styles.mainInfo}>
               <h2 className={styles.userName}>{profileData.fullName}</h2>
-              <p className={styles.userEmail}>{profileData.email}</p>
               <p className={styles.userRole}>
                 {profileData.role === 'admin' ? 'Administrador' : 
-                 profileData.role === 'customer' ? 'Cliente' : 'Técnico'}
+                 profileData.role === 'technician' ? 'Técnico' : 'Cliente'}
               </p>
               <p className={styles.memberSince}>
-                Miembro desde {profileData.memberSince ? new Date(profileData.memberSince).toLocaleDateString('es-GT', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                }) : 'No disponible'}
+                Miembro desde {new Date(profileData.memberSince).toLocaleDateString('es-GT', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
               </p>
+            </div>
+
+            <div className={styles.headerActions}>
+              {!isEditing ? (
+                <button onClick={handleEdit} className={styles.editButton}>
+                  <EditIcon />
+                  Editar Perfil
+                </button>
+              ) : (
+                <div className={styles.editActions}>
+                  <button onClick={handleSave} className={styles.saveButton}>
+                    Guardar
+                  </button>
+                  <button onClick={handleCancel} className={styles.cancelButton}>
+                    Cancelar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Estadísticas */}
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>📊</div>
-              <div className={styles.statNumber}>{profileData.totalQuotes || 0}</div>
-              <div className={styles.statLabel}>Cotizaciones</div>
+          <div className={styles.statsSection}>
+            <div className={styles.statsCard}>
+              <div className={styles.statNumber}>{profileData.totalQuotes}</div>
+              <div className={styles.statLabel}>Cotizaciones Totales</div>
             </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>✅</div>
-              <div className={styles.statNumber}>{profileData.completedProjects || 0}</div>
-              <div className={styles.statLabel}>Completados</div>
+            <div className={styles.statsCard}>
+              <div className={styles.statNumber}>{profileData.completedProjects}</div>
+              <div className={styles.statLabel}>Proyectos Completados</div>
             </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>📈</div>
+            <div className={styles.statsCard}>
               <div className={styles.statNumber}>
-                {profileData.totalQuotes && profileData.completedProjects 
-                  ? (((profileData.completedProjects / profileData.totalQuotes) * 100).toFixed(0) + '%')
-                  : '0%'
-                }
+                {((profileData.completedProjects / profileData.totalQuotes) * 100).toFixed(0)}%
               </div>
-              <div className={styles.statLabel}>Éxito</div>
+              <div className={styles.statLabel}>Tasa de Éxito</div>
             </div>
           </div>
 
-          {/* Información detallada */}
+          {/* Información personal */}
           <div className={styles.infoSection}>
-            <div className={styles.sectionHeader}>
-              <h3 className={styles.sectionTitle}>Información Personal</h3>
-              {!isEditing && (
-                <button onClick={handleEdit} className={styles.editButton}>
-                  <EditIcon />
-                  Editar
-                </button>
-              )}
-            </div>
-            
+            <h3 className={styles.sectionTitle}>Información Personal</h3>
             <div className={styles.infoGrid}>
-              {/* Nombre completo */}
               <div className={styles.infoField}>
-                <UserIcon />
+                <div className={styles.fieldIcon}>
+                  <UserIcon />
+                </div>
                 <div className={styles.fieldContent}>
-                  <label className={styles.fieldLabel}>Nombre completo</label>
+                  <label className={styles.fieldLabel}>Nombre Completo</label>
                   {isEditing ? (
                     <input
                       type="text"
-                      className={styles.fieldInput}
                       value={editForm.fullName}
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
+                      className={styles.fieldInput}
                     />
                   ) : (
                     <span className={styles.fieldValue}>{profileData.fullName}</span>
@@ -332,17 +278,18 @@ const UserProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Email */}
               <div className={styles.infoField}>
-                <MailIcon />
+                <div className={styles.fieldIcon}>
+                  <MailIcon />
+                </div>
                 <div className={styles.fieldContent}>
                   <label className={styles.fieldLabel}>Email</label>
                   {isEditing ? (
                     <input
                       type="email"
-                      className={styles.fieldInput}
                       value={editForm.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={styles.fieldInput}
                     />
                   ) : (
                     <span className={styles.fieldValue}>{profileData.email}</span>
@@ -350,17 +297,18 @@ const UserProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Teléfono */}
               <div className={styles.infoField}>
-                <PhoneIcon />
+                <div className={styles.fieldIcon}>
+                  <PhoneIcon />
+                </div>
                 <div className={styles.fieldContent}>
                   <label className={styles.fieldLabel}>Teléfono</label>
                   {isEditing ? (
                     <input
                       type="tel"
-                      className={styles.fieldInput}
                       value={editForm.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className={styles.fieldInput}
                     />
                   ) : (
                     <span className={styles.fieldValue}>{profileData.phone}</span>
@@ -368,17 +316,18 @@ const UserProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Empresa */}
               <div className={styles.infoField}>
-                <BuildingIcon />
+                <div className={styles.fieldIcon}>
+                  <BuildingIcon />
+                </div>
                 <div className={styles.fieldContent}>
                   <label className={styles.fieldLabel}>Empresa</label>
                   {isEditing ? (
                     <input
                       type="text"
-                      className={styles.fieldInput}
                       value={editForm.company}
                       onChange={(e) => handleInputChange('company', e.target.value)}
+                      className={styles.fieldInput}
                     />
                   ) : (
                     <span className={styles.fieldValue}>{profileData.company}</span>
@@ -386,17 +335,18 @@ const UserProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Dirección */}
               <div className={styles.infoField}>
-                <MapPinIcon />
+                <div className={styles.fieldIcon}>
+                  <MapPinIcon />
+                </div>
                 <div className={styles.fieldContent}>
                   <label className={styles.fieldLabel}>Dirección</label>
                   {isEditing ? (
                     <input
                       type="text"
-                      className={styles.fieldInput}
                       value={editForm.address}
                       onChange={(e) => handleInputChange('address', e.target.value)}
+                      className={styles.fieldInput}
                     />
                   ) : (
                     <span className={styles.fieldValue}>{profileData.address}</span>
@@ -404,18 +354,22 @@ const UserProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Ubicación */}
               <div className={styles.infoField}>
-                <MapPinIcon />
+                <div className={styles.fieldIcon}>
+                  <MapPinIcon />
+                </div>
                 <div className={styles.fieldContent}>
-                  <label className={styles.fieldLabel}>Ubicación</label>
+                  <label className={styles.fieldLabel}>Ciudad, País</label>
                   {isEditing ? (
                     <input
                       type="text"
-                      className={styles.fieldInput}
                       value={`${editForm.city}, ${editForm.country}`}
-                      readOnly
-                      placeholder="Ciudad, País"
+                      onChange={(e) => {
+                        const [city, country] = e.target.value.split(', ');
+                        handleInputChange('city', city || '');
+                        handleInputChange('country', country || '');
+                      }}
+                      className={styles.fieldInput}
                     />
                   ) : (
                     <span className={styles.fieldValue}>{profileData.city}, {profileData.country}</span>
@@ -423,26 +377,15 @@ const UserProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {/* Botones de acción */}
-            {isEditing && (
-              <div className={styles.actionButtons}>
-                <button onClick={handleSave} className={styles.saveButton}>
-                  Guardar Cambios
-                </button>
-                <button onClick={handleCancel} className={styles.cancelButton}>
-                  Cancelar
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* Sección de logout */}
-          <div className={styles.dangerZone}>
-            <div className={styles.sectionHeader}>
-              <h3 className={styles.sectionTitle}>Sesión</h3>
-            </div>
+          {/* Acciones de cuenta */}
+          <div className={styles.accountActions}>
+            <h3 className={styles.sectionTitle}>Acciones de Cuenta</h3>
             <div className={styles.actionButtons}>
+              <button className={styles.changePasswordButton}>
+                Cambiar Contraseña
+              </button>
               <button onClick={handleLogout} className={styles.logoutButton}>
                 <LogOutIcon />
                 Cerrar Sesión

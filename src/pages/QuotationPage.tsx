@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { quotationsService } from '../services/api';
 import styles from './QuotationPage.module.css';
 
 // --- Tipos ---
@@ -58,20 +59,34 @@ const QuotationPage: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simular envío de cotización
     try {
-      // Aquí iría la llamada al API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Preparar datos de la cotización para el backend
+      const quotationData = {
+        customerName: formData.customerName,
+        customerEmail: formData.customerEmail,
+        customerPhone: formData.customerPhone,
+        serviceName: serviceInfo?.serviceName || 'Servicio Solicitado',
+        serviceCategory: 'Instalación', // Categoría por defecto
+        projectDescription: formData.projectDescription,
+        urgency: formData.urgency,
+        estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
+        status: 'PENDIENTE', // Estado inicial
+        notes: `Cotización solicitada para: ${serviceInfo?.serviceName}`
+      };
+
+      console.log('Enviando cotización al backend:', quotationData);
       
-      console.log('Cotización enviada:', {
-        ...formData,
-        serviceId: serviceInfo?.serviceId,
-        serviceName: serviceInfo?.serviceName
-      });
+      // Enviar al backend
+      const result = await quotationsService.create(quotationData);
+      console.log('Cotización creada exitosamente:', result);
       
       setSubmitted(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al enviar cotización:', error);
+      
+      // Mostrar error específico si está disponible
+      const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
+      alert(`Error al enviar la cotización: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -95,6 +110,9 @@ const QuotationPage: React.FC = () => {
             <div className={styles.successActions}>
               <Link to="/dashboard" className={styles.primaryButton}>
                 Volver al Dashboard
+              </Link>
+              <Link to="/cotizaciones" className={styles.primaryButton}>
+                Ver Cotizaciones
               </Link>
               <button 
                 onClick={() => setSubmitted(false)}
