@@ -1,8 +1,8 @@
-// ruta: frontend/src/pages/ServiceDetailPage.tsx
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import styles from './ServiceDetailPage.module.css';
+import { useAuth } from '../context/AuthContext';
+import apiClient from '../services/api';
 
 // --- Iconos SVG ---
 const ArrowLeftIcon = () => (
@@ -12,8 +12,7 @@ const ArrowLeftIcon = () => (
   </svg>
 );
 
-// --- Interfaces y Datos Simulados ---
-
+// --- Interfaces ---
 interface Service {
   id: string;
   slug: string;
@@ -24,72 +23,42 @@ interface Service {
   imageUrl: string;
 }
 
-// Base de datos simulada de servicios
-const allServices: Service[] = [
-  { 
-    id: '1', 
-    slug: 'instalacion-electrica-residencial', 
-    name: 'Instalación Eléctrica Residencial', 
-    category: 'Electricidad',
-    description: 'Servicio completo de instalación eléctrica para nuevas construcciones o remodelaciones. Incluye diseño del plano, cableado estructurado, instalación de paneles, interruptores y tomacorrientes, cumpliendo con todas las normativas de seguridad vigentes.',
-    priceBase: 2500.00,
-    imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2069&auto=format&fit=crop'
-  },
-  { 
-    id: '2', 
-    slug: 'mantenimiento-preventivo-de-redes', 
-    name: 'Mantenimiento Preventivo de Redes', 
-    category: 'Redes y Conectividad',
-    description: 'Asegura la continuidad operativa de tu empresa con nuestro plan de mantenimiento preventivo. Realizamos diagnósticos de red, optimización de switches y routers, y aseguramos la estabilidad de la conexión para evitar fallos inesperados.',
-    priceBase: 850.50,
-    imageUrl: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?q=80&w=2070&auto=format&fit=crop'
-  },
-  { 
-    id: '3', 
-    slug: 'configuracion-camaras-de-seguridad', 
-    name: 'Configuración de Cámaras de Seguridad', 
-    category: 'Seguridad',
-    description: 'Instalación y configuración profesional de sistemas de videovigilancia (CCTV). Ofrecemos soluciones con acceso remoto, almacenamiento en la nube y cámaras de alta definición para la protección de tu hogar o negocio.',
-    priceBase: 1800.00,
-    imageUrl: 'https://images.unsplash.com/photo-1617814086920-9a4d7b7c42d0?q=80&w=1935&auto=format&fit=crop'
-  },
-  // Añade más servicios si es necesario
-];
-
 // --- Componente Principal ---
-
 const ServiceDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-
-    // Simulación de la llamada a la API GET /services/:id
-    const fetchService = () => {
-      const foundService = allServices.find(s => s.slug === slug);
-      
-      setTimeout(() => { // Simular latencia de red
-        if (foundService) {
-          setService(foundService);
-        } else {
-          setError('Servicio no encontrado.');
-        }
+    const fetchService = async () => {
+      try {
+        setLoading(true);
+        const response = await apiClient.get<Service>(`/services/${slug}`);
+        setService(response.data);
+      } catch (err) {
+        setError('Servicio no encontrado.');
+        console.error(err);
+      } finally {
         setLoading(false);
-      }, 500);
+      }
     };
 
-    fetchService();
+    if (slug) {
+      fetchService();
+    }
   }, [slug]);
 
   const handleQuoteRedirect = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     if (service) {
-      // Redirige al formulario de cotización y pasa la información del servicio
       navigate('/quotations/new', { 
         state: { 
           serviceId: service.id,

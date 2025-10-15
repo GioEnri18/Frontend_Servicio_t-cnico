@@ -1,0 +1,348 @@
+.pageContainer {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.backButton:hover {
+  text-decoration: underline;
+}
+
+.title {
+  font-size: 2.2rem;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.section h2 {
+  font-size: 1.5rem;
+  color: #34495e;
+  margin-bottom: 1rem;
+}
+
+.section p {
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.section strong {
+  color: #2c3e50;
+}
+
+.select,
+.textarea,
+.input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  box-sizing: border-box;
+}
+
+.select:focus,
+.textarea:focus,
+.input:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.inputSmall {
+  width: calc(33% - 10px);
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  box-sizing: border-box;
+}
+
+.itemsList {
+  margin-top: 1rem;
+  border: 1px solid #ecf0f1;
+  border-radius: 4px;
+  padding: 1rem;
+  background-color: #fdfdfd;
+}
+
+.itemRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed #ecf0f1;
+}
+
+.itemRow:last-child {
+  border-bottom: none;
+}
+
+.removeItemButton {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.3s ease;
+}
+
+.removeItemButton:hover {
+  background-color: #c0392b;
+}
+
+.addItemForm {
+  display: flex;
+  gap: 10px;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.addItemForm .input {
+  flex-grow: 1;
+}
+
+.addItemForm .inputSmall {
+  flex-basis: 100px; /* Adjust as needed */
+}
+
+.addButton {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.8rem 1.2rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+  white-space: nowrap;
+}
+
+.addButton:hover {
+  background-color: #27ae60;
+}
+
+.totalsSection {
+  text-align: right;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ecf0f1;
+}
+
+.totalsSection p {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: #555;
+}
+
+.totalsSection h3 {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  margin-top: 1rem;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 2rem;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.submitButton:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+
+  color: #e74c3c;
+
+  text-align: center;
+
+  margin-top: 1rem;
+
+  font-weight: 500;
+
+}
+
+
+
+.auditLogList {
+
+  list-style: none;
+
+  padding: 0;
+
+  margin-top: 1rem;
+
+}
+
+
+
+.auditLogItem {
+
+  background-color: #f8f9fa;
+
+  border: 1px solid #e9ecef;
+
+  border-radius: 5px;
+
+  padding: 0.8rem;
+
+  margin-bottom: 0.5rem;
+
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 0.5rem;
+
+  align-items: center;
+
+}
+
+
+
+.logTimestamp {
+
+  font-weight: 600;
+
+  color: #495057;
+
+  flex-basis: 180px;
+
+}
+
+
+
+.logUser {
+
+  font-style: italic;
+
+  color: #6c757d;
+
+  flex-basis: 150px;
+
+}
+
+
+
+.logAction {
+
+  font-weight: 500;
+
+  color: #007bff;
+
+  text-transform: capitalize;
+
+}
+
+
+
+.logDetail {
+
+  color: #343a40;
+
+  font-weight: 500;
+
+}
+
+
+
+.loading,
+
+.error,
+
+.notFound {
+
+  text-align: center;
+
+  padding: 2rem;
+
+  font-size: 1.2rem;
+
+  color: #7f8c8d;
+
+}
+
+
+
+.error {
+
+  color: #e74c3c;
+
+}
+
+
+
+.photoGrid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+
+  gap: 10px;
+
+  margin-top: 10px;
+
+}
+
+
+
+.thumbnail {
+
+  width: 100%;
+
+  height: 100px;
+
+  object-fit: cover;
+
+  border-radius: 4px;
+
+  border: 1px solid #eee;
+
+}

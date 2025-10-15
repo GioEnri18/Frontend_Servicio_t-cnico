@@ -1,42 +1,17 @@
-
 import axios from 'axios';
 
-// La URL base del backend de NestJS
-const BASE_URL = 'http://localhost:3000'; // Ajustado: Se eliminó /api
-
 const apiClient = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  withCredentials: true, // 👈 imprescindible para cookies
 });
 
-// Interceptor para añadir el token JWT a las solicitudes autenticadas
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('jwt_token');
-    // Aseguramos que config.headers exista
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Opcional: Interceptor de respuestas para manejar errores de token (ej. 401 Unauthorized)
+// en src/services/api.ts
 apiClient.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Token inválido o expirado
-      localStorage.removeItem('jwt_token');
-      // Redirigir al login, evitando bucles infinitos si el login falla
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+    if (error?.response?.status === 401) {
+      // ignora /auth/me si estás en login
+      // opcional: redirige si estás en páginas protegidas
     }
     return Promise.reject(error);
   }
@@ -44,3 +19,4 @@ apiClient.interceptors.response.use(
 
 
 export default apiClient;
+

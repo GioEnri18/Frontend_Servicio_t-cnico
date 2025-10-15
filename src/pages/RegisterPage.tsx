@@ -19,6 +19,9 @@ const MailIcon = () => (
     </svg>
 );
 
+const PhoneIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+const MapPinIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+
 const EyeIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -34,9 +37,13 @@ const EyeOffIcon = () => (
 );
 
 const RegisterPage: React.FC = () => {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [company, setCompany] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,12 +56,15 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // La ruta del backend para registrar es '/auth/register'
       await apiClient.post('/auth/register', {
-        fullName,
+        firstName,
+        lastName,
         email,
         password,
-        role: 'customer' // Asignamos un rol por defecto
+        phone,
+        address,
+        company,
+        role: 'customer'
       });
       
       setSuccess('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
@@ -104,12 +114,25 @@ const RegisterPage: React.FC = () => {
             <span className={styles.inputIcon}><UserIcon /></span>
             <input
               type="text"
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              id="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
               required
               className={styles.formControl}
-              placeholder="Nombres completos"
+              placeholder="Nombres"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <span className={styles.inputIcon}><UserIcon /></span>
+            <input
+              type="text"
+              id="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className={styles.formControl}
+              placeholder="Apellidos"
             />
           </div>
 
@@ -123,6 +146,44 @@ const RegisterPage: React.FC = () => {
               required
               className={styles.formControl}
               placeholder="Email"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <span className={styles.inputIcon}><UserIcon /></span> {/* Reusing UserIcon for company for now */}
+            <input
+              type="text"
+              id="company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              className={styles.formControl}
+              placeholder="Empresa (Opcional)"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <span className={styles.inputIcon}><PhoneIcon /></span>
+            <input
+              type="tel"
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className={styles.formControl}
+              placeholder="Teléfono"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <span className={styles.inputIcon}><MapPinIcon /></span>
+            <input
+              type="text"
+              id="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+              className={styles.formControl}
+              placeholder="Dirección"
             />
           </div>
 

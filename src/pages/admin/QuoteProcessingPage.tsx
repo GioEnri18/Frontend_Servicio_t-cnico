@@ -1,255 +1,259 @@
-// ruta: frontend/src/pages/admin/QuoteProcessingPage.tsx
-
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-
-// --- Tipos y Datos Simulados ---
-type QuoteStatus = 'PENDIENTE' | 'PRESUPUESTADA' | 'RECHAZADA' | 'APROBADA';
-
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface Quote {
-  id: string;
-  customer: Customer;
-  serviceName: string;
-  description: string;
-  status: QuoteStatus;
-  presupuestoFinal?: number;
-  notasAdministrativas?: string;
-  createdAt: string;
-}
-
-// Base de datos simulada de cotizaciones
-const mockQuotes: Quote[] = [
-  {
-    id: 'q-001',
-    customer: { id: 'c-1', name: 'Innovatec S.A.', email: 'contacto@innovatec.com' },
-    serviceName: 'Mantenimiento Preventivo de Redes',
-    description: 'Necesitamos una revisión completa de nuestra infraestructura de red en la oficina principal. Son 25 puntos de red, 3 switches y 1 router principal. La última revisión fue hace más de un año.',
-    status: 'PENDIENTE',
-    createdAt: '2023-10-26T10:00:00Z',
-  },
-  {
-    id: 'q-002',
-    customer: { id: 'c-2', name: 'María Robles', email: 'maria.r@email.com' },
-    serviceName: 'Instalación Eléctrica Residencial',
-    description: 'Solicito cotización para la instalación eléctrica de una casa nueva de 2 pisos, aproximadamente 150 m². Se requiere plano y certificación.',
-    status: 'PENDIENTE',
-    createdAt: '2023-10-25T15:30:00Z',
-  },
-];
-
-// --- Simulación del Hook useApi ---
-// En una aplicación real, este hook estaría en un archivo separado.
-const useApi = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const get = useCallback(async (url: string): Promise<any> => {
-    setLoading(true);
-    setError(null);
-    console.log(`GET: ${url}`);
-    const id = url.split('/').pop();
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const data = mockQuotes.find(q => q.id === id);
-        setLoading(false);
-        if (data) {
-          resolve(data);
-        } else {
-          setError('Recurso no encontrado');
-          reject(new Error('Recurso no encontrado'));
-        }
-      }, 500);
-    });
-  }, []);
-
-  const patch = useCallback(async (url: string, body: Partial<Quote>): Promise<any> => {
-    setLoading(true);
-    setError(null);
-    console.log(`PATCH: ${url}`, body);
-    const id = url.split('/').pop();
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const quoteIndex = mockQuotes.findIndex(q => q.id === id);
-        if (quoteIndex !== -1) {
-          mockQuotes[quoteIndex] = { ...mockQuotes[quoteIndex], ...body };
-          setLoading(false);
-          resolve(mockQuotes[quoteIndex]);
-        } else {
-          setError('Recurso no encontrado para actualizar');
-          setLoading(false);
-          reject(new Error('Recurso no encontrado para actualizar'));
-        }
-      }, 500);
-    });
-  }, []);
-
-  return { get, patch, loading, error };
-};
-
-
-// --- Componente Principal ---
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import apiClient from '../../services/api';
+import { QuotationStatus, type Quotation, type QuotationItem } from '../../types/quotations';
+import { type AuditLog } from '../../types/audit-log';
+import styles from './QuoteProcessingPage.module.css';
 
 const QuoteProcessingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { get, patch, loading, error: apiError } = useApi();
 
-  const [quote, setQuote] = useState<Quote | null>(null);
-  const [finalBudget, setFinalBudget] = useState('');
-  const [adminNotes, setAdminNotes] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
+  const [quotation, setQuotation] = useState<Quotation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [currentStatus, setCurrentStatus] = useState<QuotationStatus | ''>('');
+  const [notes, setNotes] = useState('');
+  const [items, setItems] = useState<QuotationItem[]>([]);
+  const [newItemDescription, setNewItemDescription] = useState('');
+  const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
+  const [newItemUnitPrice, setNewItemUnitPrice] = useState<number>(0);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   useEffect(() => {
-    if (id) {
-      get(`/quotations/${id}`)
-        .then(data => {
-          setQuote(data);
-          setFinalBudget(data.presupuestoFinal?.toString() || '');
-          setAdminNotes(data.notasAdministrativas || '');
-        })
-        .catch(console.error);
-    }
-  }, [id, get]);
+    const fetchQuotationData = async () => {
+      try {
+        setLoading(true);
+        const { data: quotationData } = await apiClient.get<Quotation>(`/quotations/${id}`);
+        setQuotation(quotationData);
+        setCurrentStatus(quotationData.status);
+        setNotes(quotationData.notes || '');
+        setItems(quotationData.items || []);
 
-  const handleUpdate = async (status: 'PRESUPUESTADA' | 'RECHAZADA') => {
-    if (!id) return;
+        const { data: logsData } = await apiClient.get<AuditLog[]>(`/audit-logs?entityId=${id}&entityName=Quotation`);
+        setAuditLogs(logsData);
 
-    let payload: Partial<Quote> = { status };
-
-    if (status === 'PRESUPUESTADA') {
-      if (!finalBudget || isNaN(parseFloat(finalBudget))) {
-        setFormError('El presupuesto final es requerido y debe ser un número.');
-        return;
+      } catch (err) {
+        console.error('Error fetching quotation data:', err);
+        setError('Error al cargar la cotización o su historial.');
+      } finally {
+        setLoading(false);
       }
-      payload = {
-        ...payload,
-        presupuestoFinal: parseFloat(finalBudget),
-        notasAdministrativas: adminNotes,
-      };
-    }
-    
-    setFormError(null);
-    try {
-      const updatedQuote = await patch(`/quotations/${id}`, payload);
-      setQuote(updatedQuote);
-      // Opcional: mostrar un toast/notificación de éxito
-      alert(`La cotización ha sido actualizada al estado: ${status}`);
-    } catch (error) {
-      console.error(error);
-      alert('Hubo un error al actualizar la cotización.');
-    }
-  };
-  
-  const getStatusBadge = (status: QuoteStatus) => {
-    const styles: { [key in QuoteStatus]: string } = {
-      PENDIENTE: 'bg-yellow-100 text-yellow-800',
-      PRESUPUESTADA: 'bg-blue-100 text-blue-800',
-      APROBADA: 'bg-green-100 text-green-800',
-      RECHAZADA: 'bg-red-100 text-red-800',
     };
-    return `px-3 py-1 text-sm font-medium rounded-full ${styles[status]}`;
+
+    if (id) {
+      fetchQuotationData();
+    }
+  }, [id]);
+
+  const handleAddItem = () => {
+    if (newItemDescription && newItemQuantity > 0 && newItemUnitPrice >= 0) {
+      const newItem: QuotationItem = {
+        id: `temp-${Date.now()}`,
+        description: newItemDescription,
+        quantity: newItemQuantity,
+        unitPrice: newItemUnitPrice,
+        subtotal: newItemQuantity * newItemUnitPrice,
+      };
+      setItems([...items, newItem]);
+      setNewItemDescription('');
+      setNewItemQuantity(1);
+      setNewItemUnitPrice(0);
+    }
   };
 
-  if (loading && !quote) return <div className="p-8">Cargando cotización...</div>;
-  if (apiError) return <div className="p-8 text-red-500">Error: {apiError}</div>;
-  if (!quote) return <div className="p-8">No se encontró la cotización.</div>;
+  const handleRemoveItem = (itemId: string) => {
+    setItems(items.filter(item => item.id !== itemId));
+  };
+
+  const calculateTotals = () => {
+    const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+    // For simplicity, assuming 0 tax for now, or a fixed rate if applicable
+    const tax = 0; 
+    const total = subtotal + tax;
+    return { subtotal, tax, total };
+  };
+
+  const handleUpdateQuotation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const { subtotal, tax, total } = calculateTotals();
+
+      await apiClient.patch(`/quotations/${id}`, {
+        status: currentStatus,
+        notes: notes,
+        items: items.map(({ id, ...rest }) => rest), // Remove temp id for backend
+        subtotal,
+        tax,
+        total,
+      });
+      navigate('/admin/quotes'); // Redirect back to management page
+    } catch (err: any) {
+      console.error('Error updating quotation:', err);
+      setError(err.response?.data?.message || 'Error al actualizar la cotización.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return <div className={styles.loading}>Cargando cotización...</div>;
+  }
+
+  if (error) {
+    return <div className={styles.error}>{error}</div>;
+  }
+
+  if (!quotation) {
+    return <div className={styles.notFound}>Cotización no encontrada.</div>;
+  }
+
+  const { subtotal, tax, total } = calculateTotals();
 
   return (
-    // Este componente debería ser renderizado dentro de tu AdminLayout
-    <div className="bg-gray-50 p-4 sm:p-6 lg:p-8 min-h-screen">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Procesar Cotización</h1>
-        <p className="text-gray-500 mt-1">ID de Solicitud: {quote.id}</p>
-      </header>
+    <div className={styles.pageContainer}>
+      <Link to="/admin/quotes" className={styles.backButton}>← Volver a Gestión de Cotizaciones</Link>
+      <h1 className={styles.title}>Procesar Cotización #{quotation.quotationNumber}</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Columna de Formulario y Acciones (ocupa 2/3) */}
-        <div className="lg:col-span-2">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-4">Formulario de Procesamiento</h2>
-            <form onSubmit={(e) => e.preventDefault()}>
-              <div className="mb-6">
-                <label htmlFor="finalBudget" className="block text-sm font-medium text-gray-700 mb-1">
-                  Presupuesto Final (S/.)
-                </label>
-                <input
-                  type="number"
-                  id="finalBudget"
-                  value={finalBudget}
-                  onChange={(e) => setFinalBudget(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Ej: 1500.00"
-                  disabled={quote.status !== 'PENDIENTE'}
-                />
+      <form onSubmit={handleUpdateQuotation} className={styles.form}>
+        <div className={styles.section}>
+          <h2>Detalles del Cliente</h2>
+          <p><strong>Cliente:</strong> {quotation.customer?.firstName} {quotation.customer?.lastName}</p>
+          <p><strong>Email:</strong> {quotation.customer?.email}</p>
+          {quotation.customer?.company && <p><strong>Empresa:</strong> {quotation.customer.company}</p>}
+          {/* Add phone if available in customer object */}
+        </div>
+
+        <div className={styles.section}>
+          <h2>Información de la Solicitud</h2>
+          <p><strong>Servicio ID:</strong> {quotation.notes?.match(/ID: ([a-f0-9-]+)/)?.[1] || 'N/A'}</p>
+          <p><strong>Descripción del Cliente:</strong> {quotation.notes?.split('Descripción del cliente:\n')[1] || 'N/A'}</p>
+          {quotation.location && <p><strong>Ubicación:</strong> {quotation.location}</p>}
+          {quotation.requiredDate && <p><strong>Fecha Requerida:</strong> {new Date(quotation.requiredDate).toLocaleDateString()}</p>}
+          {quotation.photos && quotation.photos.length > 0 && (
+            <div>
+              <strong>Fotos:</strong>
+              <div className={styles.photoGrid}>
+                {quotation.photos.map((photo: string, index: number) => (
+                  <a key={index} href={photo} target="_blank" rel="noopener noreferrer">
+                    <img src={photo} alt={`Foto ${index + 1}`} className={styles.thumbnail} />
+                  </a>
+                ))}
               </div>
-              <div>
-                <label htmlFor="adminNotes" className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas Administrativas (Opcional)
-                </label>
-                <textarea
-                  id="adminNotes"
-                  rows={4}
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Anotaciones internas, detalles técnicos, etc."
-                  disabled={quote.status !== 'PENDIENTE'}
-                />
-              </div>
-              {formError && <p className="text-red-500 text-sm mt-2">{formError}</p>}
-            </form>
-            
-            {quote.status === 'PENDIENTE' && (
-              <div className="flex items-center justify-end gap-4 mt-6 pt-6 border-t">
-                <button
-                  onClick={() => handleUpdate('RECHAZADA')}
-                  disabled={loading}
-                  className="px-6 py-2 bg-red-600 text-white font-semibold rounded-md shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-                >
-                  Rechazar Solicitud
-                </button>
-                <button
-                  onClick={() => handleUpdate('PRESUPUESTADA')}
-                  disabled={loading}
-                  className="px-6 py-2 bg-green-600 text-white font-semibold rounded-md shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
-                >
-                  {loading ? 'Generando...' : 'Generar Presupuesto'}
-                </button>
-              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.section}>
+          <h2>Estado de la Cotización</h2>
+          <select
+            value={currentStatus}
+            onChange={(e) => setCurrentStatus(e.target.value as QuotationStatus)}
+            className={styles.select}
+            disabled={isSubmitting}
+          >
+            {Object.values(QuotationStatus).map((status: QuotationStatus) => (
+              <option key={status} value={status}>
+                {status.replace(/_/g, ' ').toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={styles.section}>
+          <h2>Notas Internas</h2>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className={styles.textarea}
+            rows={4}
+            placeholder="Notas internas sobre la cotización..."
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className={styles.section}>
+          <h2>Ítems de la Cotización</h2>
+          <div className={styles.itemsList}>
+            {items.length === 0 ? (
+              <p>No hay ítems en esta cotización.</p>
+            ) : (
+              items.map((item, index) => (
+                <div key={item.id || index} className={styles.itemRow}>
+                  <span>{item.description} (x{item.quantity})</span>
+                  <span>S/. {item.unitPrice.toFixed(2)}</span>
+                  <span>S/. {item.subtotal.toFixed(2)}</span>
+                  <button type="button" onClick={() => handleRemoveItem(item.id)} className={styles.removeItemButton}>X</button>
+                </div>
+              ))
             )}
           </div>
+          <div className={styles.addItemForm}>
+            <input
+              type="text"
+              placeholder="Descripción del ítem"
+              value={newItemDescription}
+              onChange={(e) => setNewItemDescription(e.target.value)}
+              className={styles.input}
+            />
+            <input
+              type="number"
+              placeholder="Cantidad"
+              value={newItemQuantity}
+              onChange={(e) => setNewItemQuantity(parseInt(e.target.value) || 1)}
+              min="1"
+              className={styles.inputSmall}
+            />
+            <input
+              type="number"
+              placeholder="Precio Unitario"
+              value={newItemUnitPrice}
+              onChange={(e) => setNewItemUnitPrice(parseFloat(e.target.value) || 0)}
+              min="0"
+              step="0.01"
+              className={styles.inputSmall}
+            />
+            <button type="button" onClick={handleAddItem} className={styles.addButton}>Añadir Ítem</button>
+          </div>
         </div>
 
-        {/* Columna de Datos (ocupa 1/3) */}
-        <div className="space-y-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Estado de la Solicitud</h3>
-            <div className="flex justify-between items-center">
-              <span>Estado Actual:</span>
-              <span className={getStatusBadge(quote.status)}>{quote.status}</span>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Datos del Cliente</h3>
-            <dl className="space-y-2">
-              <div className="flex justify-between"><dt className="font-medium text-gray-600">Nombre:</dt><dd className="text-gray-800">{quote.customer.name}</dd></div>
-              <div className="flex justify-between"><dt className="font-medium text-gray-600">Email:</dt><dd className="text-gray-800">{quote.customer.email}</dd></div>
-            </dl>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-800 border-b pb-3 mb-4">Solicitud Original</h3>
-            <p className="text-gray-600 italic">"{quote.description}"</p>
-          </div>
+        <div className={styles.totalsSection}>
+          <p>Subtotal: S/. {subtotal.toFixed(2)}</p>
+          <p>Impuestos: S/. {tax.toFixed(2)}</p>
+          <h3>Total: S/. {total.toFixed(2)}</h3>
         </div>
 
-      </div>
+        <div className={styles.section}>
+          <h2>Historial de Actividad</h2>
+          {auditLogs.length === 0 ? (
+            <p>No hay historial de actividad para esta cotización.</p>
+          ) : (
+            <ul className={styles.auditLogList}>
+              {auditLogs.map((log) => (
+                <li key={log.id} className={styles.auditLogItem}>
+                  <span className={styles.logTimestamp}>{new Date(log.createdAt).toLocaleString()}</span>
+                  <span className={styles.logUser}>{log.user?.firstName} {log.user?.lastName}</span>
+                  <span className={styles.logAction}>{log.action.replace(/_/g, ' ').toLowerCase()}</span>
+                  {log.oldValues?.status && log.newValues?.status && (
+                    <span className={styles.logDetail}>: {log.oldValues.status} → {log.newValues.status}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {error && <p className={styles.errorMessage}>{error}</p>}
+
+        <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+          {isSubmitting ? 'Actualizando...' : 'Actualizar Cotización'}
+        </button>
+      </form>
     </div>
   );
 };

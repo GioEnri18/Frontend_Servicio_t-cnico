@@ -1,38 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import apiClient from '../../services/api';
-import { QuotationStatus } from '../../types/quotations';
-import type { Quotation } from '../../types/quotations';
-import styles from './QuoteManagementPage.module.css';
+import apiClient from '../services/api';
+import { QuotationStatus, type Quotation } from '../types/quotations';
+import styles from './ClientQuotationsPage.module.css'; // Create this CSS module
 
-type QuotationWithDates = Quotation & { createdAt?: string | Date };
-
-const QuoteManagementPage: React.FC = () => {
-  const [quotes, setQuotes] = useState<QuotationWithDates[]>([]);
+const ClientQuotationsPage: React.FC = () => {
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchQuotes = async () => {
+    const fetchMyQuotations = async () => {
       try {
         setLoading(true);
         setError(null);
-        const { data } = await apiClient.get<QuotationWithDates[]>('/quotations', {
+        const { data } = await apiClient.get<Quotation[]>('/quotations/my-quotations', {
           withCredentials: true,
         });
-        setQuotes(Array.isArray(data) ? data : []);
+        setQuotations(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error(err);
-        setError('Error al cargar las cotizaciones.');
+        console.error('Error fetching client quotations:', err);
+        setError('Error al cargar tus cotizaciones.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchQuotes();
+    fetchMyQuotations();
   }, []);
 
-  const getStatusClassName = (status: QuotationWithDates['status']) => {
+  const getStatusClassName = (status: Quotation['status']) => {
     switch (status) {
       case QuotationStatus.DRAFT:
         return styles.draft;
@@ -42,21 +39,29 @@ const QuoteManagementPage: React.FC = () => {
         return styles.approved;
       case QuotationStatus.REJECTED:
         return styles.rejected;
+      case QuotationStatus.IN_PROGRESS:
+        return styles.inProgress;
+      case QuotationStatus.COMPLETED:
+        return styles.completed;
       default:
         return styles.defaultStatus;
     }
   };
 
-  const getStatusLabel = (status: QuotationWithDates['status']) => {
+  const getStatusLabel = (status: Quotation['status']) => {
     switch (status) {
       case QuotationStatus.DRAFT:
         return 'Borrador';
       case QuotationStatus.SENT:
-        return 'Enviado';
+        return 'Enviada';
       case QuotationStatus.APPROVED:
-        return 'Aprobado';
+        return 'Aprobada';
       case QuotationStatus.REJECTED:
-        return 'Rechazado';
+        return 'Rechazada';
+      case QuotationStatus.IN_PROGRESS:
+        return 'En Curso';
+      case QuotationStatus.COMPLETED:
+        return 'Completada';
       default:
         return String(status);
     }
@@ -66,14 +71,13 @@ const QuoteManagementPage: React.FC = () => {
     if (!value) return '—';
     const d = typeof value === 'string' ? new Date(value) : value;
     return isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
-    // si quieres también hora: d.toLocaleString()
   };
 
   return (
     <div className={styles.pageContainer}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Gestión de Cotizaciones</h1>
-        <p className={styles.subtitle}>Revisa y procesa las solicitudes de cotización de los clientes.</p>
+        <h1 className={styles.title}>Mis Cotizaciones</h1>
+        <p className={styles.subtitle}>Aquí puedes ver el estado y el historial de tus solicitudes de cotización.</p>
       </header>
 
       <div className={styles.tableContainer}>
@@ -81,31 +85,29 @@ const QuoteManagementPage: React.FC = () => {
           <thead>
             <tr>
               <th># Cotización</th>
-              <th>Cliente</th>
-              <th>Fecha</th>
+              <th>Fecha de Solicitud</th>
               <th>Estado</th>
-              <th>Total</th>
+              <th>Total Estimado</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className={styles.loadingText}>Cargando...</td>
+                <td colSpan={5} className={styles.loadingText}>Cargando tus cotizaciones...</td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={6} className={styles.errorText}>{error}</td>
+                <td colSpan={5} className={styles.errorText}>{error}</td>
               </tr>
-            ) : quotes.length === 0 ? (
+            ) : quotations.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.emptyText}>No hay cotizaciones todavía.</td>
+                <td colSpan={5} className={styles.emptyText}>No has realizado ninguna solicitud de cotización todavía.</td>
               </tr>
             ) : (
-              quotes.map((quote) => (
+              quotations.map((quote) => (
                 <tr key={quote.id}>
                   <td>{quote.quotationNumber}</td>
-                  <td>{`${quote.customer?.firstName || ''} ${quote.customer?.lastName || ''}`.trim() || '—'}</td>
                   <td>{formatDate(quote.createdAt)}</td>
                   <td>
                     <span className={`${styles.statusBadge} ${getStatusClassName(quote.status)}`}>
@@ -114,11 +116,8 @@ const QuoteManagementPage: React.FC = () => {
                   </td>
                   <td>S/. {Number(quote.total).toFixed(2)}</td>
                   <td>
-                    <Link
-                      to={`/admin/quotes/${quote.id}`}
-                      className={styles.viewButton}
-                    >
-                      Ver / Procesar
+                    <Link to={`/my-quotations/${quote.id}`} className={styles.viewButton}>
+                      Ver Detalles
                     </Link>
                   </td>
                 </tr>
@@ -131,4 +130,4 @@ const QuoteManagementPage: React.FC = () => {
   );
 };
 
-export default QuoteManagementPage;
+export default ClientQuotationsPage;
