@@ -2,28 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/api';
 import styles from './UserProfilePage.module.css';
 
 // --- Tipos ---
 interface UserProfile {
   id: string;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string; // Para compatibilidad con datos estáticos
+  fullName: string;
   email: string;
-  phone?: string;
-  company?: string;
-  position?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  avatar?: string;
-  memberSince?: string;
-  createdAt?: string; // Fecha del backend
-  totalQuotes?: number;
-  completedProjects?: number;
-  role?: 'customer' | 'admin' | 'technician' | 'employee';
+  phone: string;
+  company: string;
+  position: string;
+  address: string;
+  city: string;
+  country: string;
+  avatar: string;
+  memberSince: string;
+  totalQuotes: number;
+  completedProjects: number;
+  role: 'customer' | 'admin' | 'technician';
 }
 
 // --- Iconos SVG ---
@@ -89,97 +85,33 @@ const UserProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Datos por defecto (fallback)
-  const defaultProfileData: UserProfile = {
+  const [profileData, setProfileData] = useState<UserProfile>({
     id: '1',
-    fullName: 'Usuario Anónimo',
-    email: 'usuario@tedics.com',
-    phone: '+502 0000-0000',
+    fullName: 'Marvin Estuardo',
+    email: 'admin@tedics.com',
+    phone: '+502 1234-5678',
     company: 'TEDICS Guatemala',
-    position: 'Usuario',
-    address: 'Ciudad de Guatemala',
+    position: 'Administrador de Sistemas',
+    address: 'Zona 10, Ciudad de Guatemala',
     city: 'Guatemala',
     country: 'Guatemala',
     avatar: '',
     memberSince: '2023-01-15',
-    totalQuotes: 0,
-    completedProjects: 0,
-    role: 'customer'
-  };
+    totalQuotes: 24,
+    completedProjects: 18,
+    role: 'admin'
+  });
 
-  const [profileData, setProfileData] = useState<UserProfile>(defaultProfileData);
-  const [editForm, setEditForm] = useState<UserProfile>(defaultProfileData);
+  const [editForm, setEditForm] = useState<UserProfile>(profileData);
 
   useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const loadUserProfile = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Verificar si hay token
-      const token = localStorage.getItem('jwt_token');
-      if (!token) {
-        console.log('No hay token, usando datos por defecto');
-        setIsLoading(false);
-        return;
-      }
-
-      // Intentar obtener perfil del backend
-      const userProfile = await authService.getProfile();
-      console.log('Datos del perfil obtenidos:', userProfile);
-      
-      // Transformar datos del backend al formato esperado
-      const transformedProfile: UserProfile = {
-        id: userProfile.id || '1',
-        firstName: userProfile.firstName || '',
-        lastName: userProfile.lastName || '',
-        fullName: userProfile.firstName && userProfile.lastName 
-          ? `${userProfile.firstName} ${userProfile.lastName}`
-          : userProfile.fullName || 'Usuario',
-        email: userProfile.email || 'usuario@tedics.com',
-        phone: userProfile.phone || '',
-        role: userProfile.role as 'customer' | 'admin' | 'technician' | 'employee' || 'customer',
-        memberSince: userProfile.createdAt || '2023-01-15',
-        createdAt: userProfile.createdAt,
-        // Datos por defecto para campos que no vienen del backend
-        company: 'TEDICS Guatemala',
-        position: userProfile.role === 'admin' ? 'Administrador' : 
-                 userProfile.role === 'technician' ? 'Técnico' : 'Cliente',
-        address: 'Ciudad de Guatemala',
-        city: 'Guatemala',
-        country: 'Guatemala',
-        avatar: '',
-        totalQuotes: 0,
-        completedProjects: 0
-      };
-
-      setProfileData(transformedProfile);
-      setEditForm(transformedProfile);
-      
-    } catch (error: any) {
-      console.error('Error al cargar perfil del usuario:', error);
-      setError('No se pudieron cargar los datos del perfil. Usando datos por defecto.');
-      
-      // Si hay error, usar datos por defecto pero con email del localStorage si existe
-      const userEmail = localStorage.getItem('user_email');
-      if (userEmail) {
-        const fallbackProfile = {
-          ...defaultProfileData,
-          email: userEmail,
-          fullName: 'Usuario Logueado'
-        };
-        setProfileData(fallbackProfile);
-        setEditForm(fallbackProfile);
-      }
-    } finally {
+    // Simular carga de datos
+    const timer = setTimeout(() => {
       setIsLoading(false);
-    }
-  };
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleEdit = () => {
     setEditForm(profileData);
@@ -225,19 +157,6 @@ const UserProfilePage: React.FC = () => {
   return (
     <div className={styles.profilePage}>
       <div className={styles.container}>
-        {/* Mostrar error si existe */}
-        {error && (
-          <div style={{ 
-            backgroundColor: '#f8d7da', 
-            color: '#721c24', 
-            padding: '10px', 
-            borderRadius: '5px', 
-            marginBottom: '20px',
-            border: '1px solid #f5c6cb'
-          }}>
-            ⚠️ {error}
-          </div>
-        )}
         {/* Header */}
         <div className={styles.header}>
           <button onClick={() => navigate('/dashboard')} className={styles.backButton}>
@@ -268,11 +187,11 @@ const UserProfilePage: React.FC = () => {
                  profileData.role === 'customer' ? 'Cliente' : 'Técnico'}
               </p>
               <p className={styles.memberSince}>
-                Miembro desde {profileData.memberSince ? new Date(profileData.memberSince).toLocaleDateString('es-GT', {
+                Miembro desde {new Date(profileData.memberSince).toLocaleDateString('es-GT', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
-                }) : 'No disponible'}
+                })}
               </p>
             </div>
           </div>
@@ -281,21 +200,18 @@ const UserProfilePage: React.FC = () => {
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
               <div className={styles.statIcon}>📊</div>
-              <div className={styles.statNumber}>{profileData.totalQuotes || 0}</div>
+              <div className={styles.statNumber}>{profileData.totalQuotes}</div>
               <div className={styles.statLabel}>Cotizaciones</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statIcon}>✅</div>
-              <div className={styles.statNumber}>{profileData.completedProjects || 0}</div>
+              <div className={styles.statNumber}>{profileData.completedProjects}</div>
               <div className={styles.statLabel}>Completados</div>
             </div>
             <div className={styles.statCard}>
               <div className={styles.statIcon}>📈</div>
               <div className={styles.statNumber}>
-                {profileData.totalQuotes && profileData.completedProjects 
-                  ? (((profileData.completedProjects / profileData.totalQuotes) * 100).toFixed(0) + '%')
-                  : '0%'
-                }
+                {((profileData.completedProjects / profileData.totalQuotes) * 100).toFixed(0)}%
               </div>
               <div className={styles.statLabel}>Éxito</div>
             </div>

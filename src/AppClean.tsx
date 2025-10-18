@@ -7,7 +7,7 @@ import TestLoginPage from './pages/TestLoginPage';
 import AboutPage from './pages/AboutPage';
 import ServiceDetailPage from './pages/ServiceDetailPage';
 import QuotationPage from './pages/QuotationPage';
-// import QuoteManagementPage from './pages/admin/QuoteManagementPage';
+import QuoteManagementPage from './pages/QuoteManagementPage';
 // import QuoteProcessingPage from './pages/admin/QuoteProcessingPage';
 import UserProfilePage from './pages/UserProfilePage';
 // import ClientManagementPage from './pages/admin/ClientManagementPage';
@@ -55,21 +55,16 @@ function App() {
           <QuotationPage />
         </ProtectedRoute>
       } />
+      <Route path="/cotizaciones" element={
+        <ProtectedRoute>
+          <QuoteManagementPage />
+        </ProtectedRoute>
+      } />
       <Route path="/profile" element={
         <ProtectedRoute>
           <UserProfilePage />
         </ProtectedRoute>
       } />
-      {/* <Route path="/cotizaciones" element={
-        <ProtectedRoute>
-          <QuoteManagementPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/cotizaciones/new" element={
-        <ProtectedRoute>
-          <CreateQuotePage />
-        </ProtectedRoute>
-      } /> */}
       <Route path="/clientes" element={
         <ProtectedRoute>
           <ClientesPage />
@@ -82,7 +77,8 @@ function App() {
           <AdminDashboardPage />
         </ProtectedRoute>
       } />
-      {/* <Route path="/admin/quotes" element={
+      {/* Rutas admin adicionales temporalmente comentadas
+      <Route path="/admin/quotes" element={
         <ProtectedRoute>
           <QuoteManagementPage />
         </ProtectedRoute>
@@ -96,7 +92,8 @@ function App() {
         <ProtectedRoute>
           <ClientManagementPage />
         </ProtectedRoute>
-      } /> */}
+      } />
+      */}
     </Routes>
   );
 }

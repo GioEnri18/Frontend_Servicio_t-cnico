@@ -34,7 +34,8 @@ const EyeOffIcon = () => (
 );
 
 const RegisterPage: React.FC = () => {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -51,7 +52,8 @@ const RegisterPage: React.FC = () => {
     try {
       // La ruta del backend para registrar es '/auth/register'
       await apiClient.post('/auth/register', {
-        fullName,
+        firstName,
+        lastName,
         email,
         password,
         role: 'customer' // Asignamos un rol por defecto
@@ -104,12 +106,25 @@ const RegisterPage: React.FC = () => {
             <span className={styles.inputIcon}><UserIcon /></span>
             <input
               type="text"
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              id="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
               required
               className={styles.formControl}
-              placeholder="Nombres completos"
+              placeholder="Nombre"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <span className={styles.inputIcon}><UserIcon /></span>
+            <input
+              type="text"
+              id="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className={styles.formControl}
+              placeholder="Apellido"
             />
           </div>
 
