@@ -122,6 +122,13 @@
   font-size: 1rem;
   transition: all 0.3s ease;
   background: white;
+  color: #333;
+}
+
+.input:read-only {
+  background-color: #f0f2f5;
+  color: #555;
+  cursor: not-allowed;
 }
 
 .input:focus,

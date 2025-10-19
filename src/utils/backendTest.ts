@@ -1,6 +1,7 @@
 // ruta: frontend/src/utils/backendTest.ts
 
-import { authService, servicesService, quotationsService, userService, checkConnectivity } from '../services/api';
+import { authService, servicesService, userService, checkConnectivity } from '../services/api';
+import { quotationsService } from '../services/quotations';
 
 // Función para probar la conexión con el backend
 export const testBackendConnection = async () => {

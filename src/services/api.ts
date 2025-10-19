@@ -1,11 +1,8 @@
 import axios from 'axios';
 
 // 1. Cargar la URL base desde las variables de entorno
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-// 2. Crear una única instancia de Axios bien configurada
 const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/api`, // El backend usa un prefijo /api global
+  baseURL: '/api', // El backend usa un prefijo /api global
   headers: {
     'Content-Type': 'application/json',
   },
@@ -79,16 +76,6 @@ export const productsService = {
   create: (productData) => apiClient.post('/products', productData).then(handleResponse),
   update: (id, productData) => apiClient.patch(`/products/${id}`, productData).then(handleResponse), // Usar PATCH
   delete: (id) => apiClient.delete(`/products/${id}`).then(handleResponse),
-};
-
-// Cotizaciones (Corregido de /quotes a /quotations)
-export const quotationsService = {
-  getAll: () => apiClient.get('/quotations').then(handleResponse),
-  getMyQuotations: () => apiClient.get('/quotations/my-quotations').then(handleResponse),
-  getById: (id) => apiClient.get(`/quotations/${id}`).then(handleResponse),
-  create: (quotationData) => apiClient.post('/quotations', quotationData).then(handleResponse),
-  update: (id, quotationData) => apiClient.patch(`/quotations/${id}`, quotationData).then(handleResponse), // Usar PATCH
-  delete: (id) => apiClient.delete(`/quotations/${id}`).then(handleResponse),
 };
 
 // Servicios (Coincide con /api/services/*)

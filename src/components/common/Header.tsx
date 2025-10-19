@@ -3,17 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Header.css'; // Importamos el CSS
 
-// En una aplicación real, usar una librería como jwt-decode
-const getRoleFromToken = (token: string): string | null => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.role || null;
-  } catch (error) {
-    console.error("Error decodificando el token:", error);
-    return null;
-  }
-};
-
 const Header: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,9 +10,10 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('jwt_token');
-    if (token) {
-      const role = getRoleFromToken(token);
-      setUserRole(role);
+    const userData = localStorage.getItem('user_data');
+    if (token && userData) {
+      const user = JSON.parse(userData);
+      setUserRole(user.role);
       setIsAuthenticated(true);
     }
   }, []);
@@ -52,7 +42,7 @@ const Header: React.FC = () => {
           {isAuthenticated && (
             <>
               <Link to="/services" className="nav-link">Servicios</Link>
-              <Link to="/cotizaciones" className="nav-link">Cotizaciones</Link>
+              <Link to="/quotations/new" className="nav-link">Cotizaciones</Link>
             </>
           )}
           

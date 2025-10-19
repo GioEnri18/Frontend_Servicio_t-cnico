@@ -25,7 +25,16 @@ const mockServices: Service[] = [
 
 const DashboardPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate(); // Inicializar useNavigate
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUserRole(user.role);
+    }
+  }, []);
 
   // Simulación de la llamada a la API GET /services
   useEffect(() => {
@@ -57,7 +66,9 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <Link to="/cotizaciones">Cotizaciones</Link>
-          <Link to="/clientes">Clientes</Link>
+          {(userRole === 'admin' || userRole === 'employee') && (
+            <Link to="/clientes">Clientes</Link>
+          )}
         </nav>
         <div className={styles.headerRight}>
           <div className={styles.searchContainer}>

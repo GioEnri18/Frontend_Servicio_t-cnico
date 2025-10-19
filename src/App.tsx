@@ -60,12 +60,12 @@ function App() {
           <UserProfilePage />
         </ProtectedRoute>
       } />
-      {/* <Route path="/cotizaciones" element={
+      <Route path="/cotizaciones" element={
         <ProtectedRoute>
           <QuoteManagementPage />
         </ProtectedRoute>
       } />
-      <Route path="/cotizaciones/new" element={
+      {/* <Route path="/cotizaciones/new" element={
         <ProtectedRoute>
           <CreateQuotePage />
         </ProtectedRoute>
