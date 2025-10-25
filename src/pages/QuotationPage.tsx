@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { quotationsService } from '../services/api';
+import { quotationsService } from '../services/quotations';
 import styles from './QuotationPage.module.css';
 
 // --- Tipos ---
@@ -17,6 +17,8 @@ interface QuotationForm {
   customerEmail: string;
   customerPhone: string;
   projectDescription: string;
+  location: string;
+  requiredDate: string;
   urgency: 'low' | 'medium' | 'high';
   estimatedBudget: string;
 }
@@ -33,12 +35,26 @@ const QuotationPage: React.FC = () => {
     customerEmail: '',
     customerPhone: '',
     projectDescription: '',
+    location: '',
+    requiredDate: new Date().toISOString().split('T')[0],
     urgency: 'medium',
     estimatedBudget: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setFormData(prev => ({
+        ...prev,
+        customerName: user.name || '',
+        customerEmail: user.email || ''
+      }));
+    }
+  }, []);
 
   // Si no hay información del servicio, redirigir al dashboard
   useEffect(() => {
@@ -62,16 +78,10 @@ const QuotationPage: React.FC = () => {
     try {
       // Preparar datos de la cotización para el backend
       const quotationData = {
-        customerName: formData.customerName,
-        customerEmail: formData.customerEmail,
-        customerPhone: formData.customerPhone,
-        serviceName: serviceInfo?.serviceName || 'Servicio Solicitado',
-        serviceCategory: 'Instalación', // Categoría por defecto
-        projectDescription: formData.projectDescription,
-        urgency: formData.urgency,
-        estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
-        status: 'PENDIENTE', // Estado inicial
-        notes: `Cotización solicitada para: ${serviceInfo?.serviceName}`
+        serviceId: serviceInfo.serviceId,
+        description: formData.projectDescription,
+        location: formData.location,
+        requiredDate: new Date(formData.requiredDate).toISOString(),
       };
 
       console.log('Enviando cotización al backend:', quotationData);
@@ -112,7 +122,7 @@ const QuotationPage: React.FC = () => {
                 Volver al Dashboard
               </Link>
               <Link to="/cotizaciones" className={styles.primaryButton}>
-                Ver Cotizaciones
+                Ver Mis Cotizaciones
               </Link>
               <button 
                 onClick={() => setSubmitted(false)}
@@ -159,6 +169,7 @@ const QuotationPage: React.FC = () => {
                     value={formData.customerName}
                     onChange={handleInputChange}
                     required
+                    readOnly
                     className={styles.input}
                     placeholder="Tu nombre completo"
                   />
@@ -175,6 +186,7 @@ const QuotationPage: React.FC = () => {
                     value={formData.customerEmail}
                     onChange={handleInputChange}
                     required
+                    readOnly
                     className={styles.input}
                     placeholder="tu@email.com"
                   />
@@ -215,6 +227,38 @@ const QuotationPage: React.FC = () => {
                   className={styles.textarea}
                   placeholder="Describe detalladamente lo que necesitas..."
                 />
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="location" className={styles.label}>
+                    Ubicación (Ciudad/Municipio) *
+                  </label>
+                  <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    required
+                    className={styles.input}
+                    placeholder="Ej: Ciudad de Guatemala"
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="requiredDate" className={styles.label}>
+                    Fecha Requerida *
+                  </label>
+                  <input
+                    type="date"
+                    id="requiredDate"
+                    name="requiredDate"
+                    value={formData.requiredDate}
+                    onChange={handleInputChange}
+                    required
+                    className={styles.input}
+                  />
+                </div>
               </div>
 
               <div className={styles.formRow}>

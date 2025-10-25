@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { quotationsService } from '../services/api';
+import { quotationsService, updateQuotationStatus } from '../services/quotations';
 import styles from './QuoteManagementPage.module.css';
+
+interface Status {
+  id: string;
+  name: string;
+}
 
 interface Quote {
   id: string;
@@ -11,7 +16,7 @@ interface Quote {
   serviceName: string;
   serviceCategory?: string;
   projectDescription?: string;
-  status: string;
+  status: Status;
   urgency?: string;
   estimatedBudget?: number;
   totalAmount?: number;
@@ -25,39 +30,80 @@ const QuoteManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [availableStatuses, setAvailableStatuses] = useState<Status[]>([]); // New state for statuses
 
   useEffect(() => {
-    loadQuotes();
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUserRole(user.role);
+    }
   }, []);
+
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const statuses = await quotationsService.getStatuses();
+        setAvailableStatuses(statuses);
+      } catch (err) {
+        console.error('Error fetching statuses:', err);
+        setError('Error al cargar los estados disponibles.');
+      }
+    };
+    fetchStatuses();
+  }, []); // Fetch statuses only once on mount
+
+  useEffect(() => {
+    if (userRole) { // Solo cargar si ya tenemos el rol
+      loadQuotes();
+    }
+  }, [userRole]); // Depender del rol del usuario
 
   const loadQuotes = async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Cargando cotizaciones del backend...');
       
-      const data = await quotationsService.getAll();
-      console.log('Cotizaciones obtenidas:', data);
+      let data;
+      let transformedQuotes: Quote[] = []; // Initialize as empty array
+      if (userRole === 'admin' || userRole === 'employee') {
+        console.log('Cargando todas las cotizaciones (admin)...');
+        data = await quotationsService.getAll();
+      } else {
+        console.log('Cargando mis cotizaciones (cliente)...');
+        data = await quotationsService.getMyQuotations();
+      }
       
-      // Transformar datos del backend al formato esperado
-      const transformedQuotes: Quote[] = data.map((q: any) => ({
-        id: q.id || Date.now().toString(),
-        customerName: q.customerName || 'Cliente Sin Nombre',
-        customerEmail: q.customerEmail || '',
-        customerPhone: q.customerPhone || '',
-        serviceName: q.serviceName || 'Servicio',
-        serviceCategory: q.serviceCategory || 'General',
-        projectDescription: q.projectDescription || '',
-        status: q.status || 'PENDIENTE',
-        urgency: q.urgency || 'medium',
-        estimatedBudget: q.estimatedBudget || 0,
-        totalAmount: q.totalAmount || q.estimatedBudget || 0,
-        createdAt: q.createdAt || new Date().toISOString(),
-        updatedAt: q.updatedAt,
-        notes: q.notes || ''
-      }));
+      // Only transform if data is available and is an array
+      if (data && Array.isArray(data)) {
+        transformedQuotes = data.map((q: any) => ({
+          id: q.id || Date.now().toString(),
+          customerName: q.customer?.firstName + ' ' + q.customer?.lastName || 'Cliente Sin Nombre',
+          customerEmail: q.customer?.email || '',
+          customerPhone: q.customer?.phone || '',
+          serviceName: q.notes?.split('\n')[0].replace('Solicitud de cotización para el servicio ID: ', '').replace('.', '') || 'Servicio',
+          serviceCategory: 'General',
+          projectDescription: q.notes?.split('\n\nDescripción del cliente:\n')[1] || '',
+          status: q.status || { id: 'default-pending-id', name: 'Pendiente' }, // Default status as object
+          urgency: 'medium',
+          estimatedBudget: Number(q.subtotal) || 0,
+          totalAmount: Number(q.total) || 0,
+          createdAt: q.createdAt || new Date().toISOString(),
+          updatedAt: q.updatedAt,
+          notes: q.notes || ''
+        }));
+      }
       
       setQuotes(transformedQuotes);
+
+      // If a quote is currently selected, find its updated version and set it
+      if (selectedQuote) {
+        const updatedSelectedQuote = transformedQuotes.find(q => q.id === selectedQuote.id);
+        if (updatedSelectedQuote) {
+          setSelectedQuote(updatedSelectedQuote);
+        }
+      }
       
     } catch (error: any) {
       console.error('Error al cargar cotizaciones:', error);
@@ -70,7 +116,7 @@ const QuoteManagementPage = () => {
           customerName: 'Juan Pérez',
           customerEmail: 'juan@email.com',
           serviceName: 'Instalación Eléctrica Residencial',
-          status: 'PENDIENTE',
+          status: { id: 'mock-pending-id', name: 'Pendiente' },
           totalAmount: 0,
           createdAt: '2025-01-10',
           notes: 'Instalación completa para casa de 120m²'
@@ -80,7 +126,7 @@ const QuoteManagementPage = () => {
           customerName: 'María González',
           customerEmail: 'maria@email.com',
           serviceName: 'Configuración de Cámaras de Seguridad',
-          status: 'EN PROCESO',
+          status: { id: 'mock-in-progress-id', name: 'En Proceso' },
           totalAmount: 740,
           createdAt: '2025-01-09',
           notes: 'Sistema de 4 cámaras para oficina'
@@ -89,39 +135,52 @@ const QuoteManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }; // Closing brace for loadQuotes
 
   const handleSelectQuote = (quote: Quote) => {
     setSelectedQuote(quote);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDIENTE':
-        return '#f59e0b';
-      case 'EN PROCESO':
-        return '#3b82f6';
-      case 'COMPLETADO':
-        return '#10b981';
-      case 'RECHAZADO':
-        return '#ef4444';
-      default:
-        return '#6b7280';
+  const handleStatusChange = async (newStatusId: string) => {
+    if (!selectedQuote) return;
+
+    try {
+      await updateQuotationStatus(selectedQuote.id, newStatusId);
+      // Refresh the quotes list to show the updated status
+      loadQuotes();
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setError('Error al actualizar el estado.');
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'PENDIENTE':
-        return 'PENDIENTE';
-      case 'EN PROCESO':
-        return 'EN PROCESO';
-      case 'COMPLETADO':
-        return 'COMPLETADO';
-      case 'RECHAZADO':
-        return 'RECHAZADO';
+  const getStatusColor = (statusName: string) => {
+    switch (statusName) {
+      case 'Pendiente':
+        return '#f59e0b'; // Amber
+      case 'Iniciado':
+        return '#3b82f6'; // Blue
+      case 'En Proceso':
+        return '#8b5cf6'; // Violet
+      case 'Finalizado':
+        return '#10b981'; // Green
       default:
-        return status;
+        return '#6b7280'; // Gray
+    }
+  };
+
+  const getStatusText = (statusName: string) => {
+    switch (statusName) {
+      case 'Pendiente':
+        return 'Pendiente';
+      case 'Iniciado':
+        return 'Iniciado';
+      case 'En Proceso':
+        return 'En Proceso';
+      case 'Finalizado':
+        return 'Finalizado';
+      default:
+        return statusName;
     }
   };
 
@@ -143,8 +202,14 @@ const QuoteManagementPage = () => {
           <Link to="/" className={styles.backButton}>
             ← Volver al Panel Principal
           </Link>
-          <h1 className={styles.pageTitle}>Gestión de Cotizaciones</h1>
-          <p className={styles.pageSubtitle}>Administra productos, precios y cantidades</p>
+          <h1 className={styles.pageTitle}>
+            {userRole === 'admin' || userRole === 'employee' ? 'Gestión de Cotizaciones' : 'Mis Cotizaciones'}
+          </h1>
+          <p className={styles.pageSubtitle}>
+            {userRole === 'admin' || userRole === 'employee' 
+              ? 'Administra productos, precios y cantidades' 
+              : 'Aquí puedes ver el historial y estado de tus cotizaciones'}
+          </p>
         </div>
 
         {error && (
@@ -177,7 +242,7 @@ const QuoteManagementPage = () => {
                     <span 
                       className={styles.status}
                       style={{ 
-                        backgroundColor: getStatusColor(quote.status),
+                        backgroundColor: getStatusColor(quote.status.name),
                         color: 'white',
                         padding: '4px 8px',
                         borderRadius: '4px',
@@ -185,7 +250,7 @@ const QuoteManagementPage = () => {
                         fontWeight: 'bold'
                       }}
                     >
-                      {getStatusText(quote.status)}
+                      {getStatusText(quote.status.name)}
                     </span>
                   </div>
                   <p className={styles.quoteService}>{quote.serviceName}</p>
@@ -222,7 +287,7 @@ const QuoteManagementPage = () => {
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Estado:</span>
-                    <span className={styles.value}>{getStatusText(selectedQuote.status)}</span>
+                    <span className={styles.value}>{getStatusText(selectedQuote.status.name)}</span>
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Fecha:</span>
@@ -245,6 +310,25 @@ const QuoteManagementPage = () => {
                     </div>
                   )}
                 </div>
+
+                {(userRole === 'admin' || userRole === 'employee') && (
+                  <div className={styles.statusChanger}>
+                    <label htmlFor="status-select">Cambiar Estado:</label>
+                    <select 
+                      id="status-select"
+                      value={selectedQuote.status.id}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      className={styles.statusSelect}
+                    >
+                      {availableStatuses.map(status => (
+                        <option key={status.id} value={status.id}>
+                          {status.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
               </div>
             ) : (
               <div className={styles.noSelection}>
