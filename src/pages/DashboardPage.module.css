@@ -1,0 +1,291 @@
+/* ruta: frontend/src/pages/DashboardPage.module.css */
+
+.dashboardPage {
+  background-color: #f0f2f5;
+  color: #333;
+  min-height: 100vh;
+}
+
+/* --- Header (estilos existentes sin cambios) --- */
+.header {
+  padding: 1rem 2rem;
+  background: linear-gradient(90deg, #0d47a1 0%, #4a148c 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.headerNav {
+  display: flex;
+  align-items: center;
+}
+
+.headerNav a, .navItem {
+  color: white;
+  text-decoration: none;
+  margin: 0 1rem;
+  font-weight: 500;
+  transition: opacity 0.3s;
+  padding: 0.5rem 0;
+}
+
+.navItemContainer .navItem {
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+}
+
+.headerNav a:hover, .navItem:hover {
+  opacity: 0.8;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.searchContainer {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ccc;
+}
+
+.searchInput {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  color: white;
+  width: 250px;
+  transition: background-color 0.3s;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.searchInput:focus {
+  background-color: rgba(255, 255, 255, 0.3);
+  outline: none;
+}
+
+.profileButton {
+  background-color: #ff4081;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.profileButton:hover {
+  background-color: #f50057;
+}
+
+/* --- Hero y Works Section (estilos existentes sin cambios) ... */
+.heroSection {
+  position: relative;
+  padding: 4rem 2rem;
+  background-color: #e9eef2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+/* ... (resto de estilos de hero y works) ... */
+
+
+/* --- NUEVOS ESTILOS PARA EL MENÚ DESPLEGABLE DE SERVICIOS --- */
+
+.navItemContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.navItem {
+  color: white !important;
+  text-decoration: none;
+  margin: 0 1rem;
+  font-weight: 500;
+  transition: opacity 0.3s;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  display: inline-block;
+  user-select: none;
+}
+
+.navItem:hover {
+  opacity: 0.8;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem 0;
+  min-width: 250px;
+  z-index: 1001;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(-10px);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.navItemContainer:hover .dropdownMenu,
+.dropdownVisible {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+
+.dropdownLink {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  color: #000000 !important;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.dropdownLink:hover {
+  background-color: #f8f9fa;
+  color: #000000 !important;
+  border-left-color: #667eea;
+  padding-left: 1.8rem;
+}
+
+/* --- Responsive (sin cambios) ... */
+@media (max-width: 1024px) {
+  .headerNav {
+    display: none;
+  }
+  .heroSection {
+    flex-direction: column;
+    text-align: center;
+  }
+  .socialIcons {
+    position: static;
+    flex-direction: row;
+    margin-top: 2rem;
+    transform: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem;
+  }
+  .headerRight {
+    gap: 1rem;
+  }
+  .searchInput {
+    width: 150px;
+  }
+  .heroSection, .worksSection {
+    padding: 2rem 1rem;
+  }
+  .workCard {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+.worksSection {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.worksTitle {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 3rem;
+}
+
+.cardsContainer {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.workCard {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  width: 350px;
+  text-align: left;
+  padding: 1.5rem;
+}
+
+.workCard .companyName {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 0 1rem 0;
+}
+
+.workCard .comments {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+  border-left: 3px solid #007bff;
+  padding-left: 1rem;
+}
+
+.workCard .cost {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #4a148c;
+  text-align: right;
+}
+
+.loadMoreButton {
+  margin-top: 3rem;
+  background-color: transparent;
+  border: 2px solid #0d47a1;
+  color: #0d47a1;
+  padding: 0.8rem 2.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.loadMoreButton:hover {
+  background-color: #0d47a1;
+  color: white;
+}
