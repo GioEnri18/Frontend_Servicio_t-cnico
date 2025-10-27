@@ -123,29 +123,29 @@ const UserProfilePage: React.FC = () => {
     try {
       // Verificar si hay token
       const token = localStorage.getItem('jwt_token');
+      
       if (!token) {
-        console.log('No hay token, usando datos por defecto');
         setIsLoading(false);
         return;
       }
 
       // Intentar obtener perfil del backend
       const userProfile = await authService.getProfile();
-      console.log('Datos del perfil obtenidos:', userProfile);
+      
+      // Extraer los datos del objeto user anidado
+      const userData = userProfile.user || userProfile;
       
       // Transformar datos del backend al formato esperado
       const transformedProfile: UserProfile = {
-        id: userProfile.id || '1',
-        firstName: userProfile.firstName || '',
-        lastName: userProfile.lastName || '',
-        fullName: userProfile.firstName && userProfile.lastName 
-          ? `${userProfile.firstName} ${userProfile.lastName}`
-          : userProfile.fullName || 'Usuario',
-        email: userProfile.email || 'usuario@tedics.com',
-        phone: userProfile.phone || '',
-        role: userProfile.role as 'customer' | 'admin' | 'technician' | 'employee' || 'customer',
-        memberSince: userProfile.createdAt || '2023-01-15',
-        createdAt: userProfile.createdAt,
+        id: userData.id || '1',
+        firstName: userData.firstName || userData.name?.split(' ')[0] || '',
+        lastName: userData.lastName || userData.name?.split(' ').slice(1).join(' ') || '',
+        fullName: userData.name || userData.fullName || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Usuario',
+        email: userData.email || 'usuario@tedics.com',
+        phone: userData.phone || '',
+        role: userData.role as 'customer' | 'admin' | 'technician' | 'employee' || 'customer',
+        memberSince: userData.createdAt || '2023-01-15',
+        createdAt: userData.createdAt,
         // Datos por defecto para campos que no vienen del backend
         company: 'TEDICS Guatemala',
         position: userProfile.role === 'admin' ? 'Administrador' : 
@@ -162,20 +162,20 @@ const UserProfilePage: React.FC = () => {
       setEditForm(transformedProfile);
       
     } catch (error: any) {
-      console.error('Error al cargar perfil del usuario:', error);
-      setError('No se pudieron cargar los datos del perfil. Usando datos por defecto.');
+      console.error('Error al cargar perfil:', error);
       
-      // Si hay error, usar datos por defecto pero con email del localStorage si existe
-      const userEmail = localStorage.getItem('user_email');
-      if (userEmail) {
-        const fallbackProfile = {
-          ...defaultProfileData,
-          email: userEmail,
-          fullName: 'Usuario Logueado'
-        };
-        setProfileData(fallbackProfile);
-        setEditForm(fallbackProfile);
-      }
+      // IMPORTANTE: NO redirigir automáticamente, solo mostrar datos por defecto
+      setError('No se pudieron cargar los datos del perfil desde el backend. Mostrando datos locales.');
+      
+      // Usar datos por defecto con email del localStorage si existe
+      const userEmail = localStorage.getItem('user_email') || 'usuario@tedics.com';
+      const fallbackProfile = {
+        ...defaultProfileData,
+        email: userEmail,
+        fullName: 'Usuario Logueado',
+      };
+      setProfileData(fallbackProfile);
+      setEditForm(fallbackProfile);
     } finally {
       setIsLoading(false);
     }

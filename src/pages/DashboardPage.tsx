@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // Importar Link y useNavigate
+import { authService } from '../services/api';
 import styles from './DashboardPage.module.css';
+
+// Importar imágenes de trabajos realizados
+import instalacionCamara1 from '../assets/trabajos/instalacion camara/WhatsApp Image 2025-10-25 at 7.21.55 AM.jpeg';
+import instalacionCamara2 from '../assets/trabajos/instalacion camara/WhatsApp Image 2025-10-25 at 7.21.56 AM (1).jpeg';
+import instalacionCamara3 from '../assets/trabajos/instalacion camara/WhatsApp Image 2025-10-25 at 7.21.56 AM (2).jpeg';
+import instalacionCamara4 from '../assets/trabajos/instalacion camara/WhatsApp Image 2025-10-25 at 7.21.56 AM.jpeg';
+import mantenimientoIndustrial1 from '../assets/trabajos/mantenimiento industrial/WhatsApp Image 2025-10-25 at 7.24.03 AM.jpeg';
+import mantenimientoIndustrial2 from '../assets/trabajos/mantenimiento industrial/WhatsApp Image 2025-10-25 at 7.24.04 AM (1).jpeg';
+import mantenimientoIndustrial3 from '../assets/trabajos/mantenimiento industrial/WhatsApp Image 2025-10-25 at 7.24.04 AM (2).jpeg';
+import mantenimientoIndustrial4 from '../assets/trabajos/mantenimiento industrial/WhatsApp Image 2025-10-25 at 7.24.04 AM.jpeg';
+import mantenimientoLineaBlanca1 from '../assets/trabajos/manteniminetolineablanca/WhatsApp Image 2025-10-25 at 7.23.04 AM (1).jpeg';
+import mantenimientoLineaBlanca2 from '../assets/trabajos/manteniminetolineablanca/WhatsApp Image 2025-10-25 at 7.23.04 AM (2).jpeg';
+import mantenimientoLineaBlanca3 from '../assets/trabajos/manteniminetolineablanca/WhatsApp Image 2025-10-25 at 7.23.04 AM.jpeg';
+import mantenimientoLineaBlanca4 from '../assets/trabajos/manteniminetolineablanca/WhatsApp Image 2025-10-25 at 7.23.05 AM (1).jpeg';
+import mantenimientoLineaBlanca5 from '../assets/trabajos/manteniminetolineablanca/WhatsApp Image 2025-10-25 at 7.23.05 AM.jpeg';
 
 // --- Iconos SVG (sin cambios) ---
 const MenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
@@ -16,6 +32,15 @@ interface Service {
   slug: string;
 }
 
+interface UserProfile {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  email: string;
+  role?: 'customer' | 'admin' | 'technician' | 'employee';
+}
+
 const mockServices: Service[] = [
   { id: '1', name: 'Instalación Eléctrica Residencial', slug: 'instalacion-electrica-residencial' },
   { id: '2', name: 'Mantenimiento Preventivo de Redes', slug: 'mantenimiento-preventivo-de-redes' },
@@ -25,7 +50,26 @@ const mockServices: Service[] = [
 
 const DashboardPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const navigate = useNavigate(); // Inicializar useNavigate
+
+  // Cargar perfil del usuario para verificar si es admin
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('jwt_token');
+        if (token) {
+          const profile = await authService.getProfile();
+          const userData = profile.user || profile;
+          setUserProfile(userData);
+        }
+      } catch (error) {
+        console.error('Error cargando perfil:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
 
   // Simulación de la llamada a la API GET /services
   useEffect(() => {
@@ -69,10 +113,215 @@ const DashboardPage: React.FC = () => {
       </header>
 
       <main>
+        {/* --- Sección de Administración (Solo Admin) --- */}
+        {userProfile?.role === 'admin' && (
+          <section style={{
+            backgroundColor: '#f0f9ff',
+            padding: '1.5rem',
+            margin: '1rem 0',
+            borderRadius: '12px',
+            border: '1px solid #0ea5e9'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <h3 style={{ 
+                color: '#0369a1', 
+                marginBottom: '1rem',
+                fontSize: '1.5rem',
+                fontWeight: '600'
+              }}>
+                👑 Panel de Administración
+              </h3>
+              <p style={{ 
+                color: '#0c4a6e', 
+                marginBottom: '1.5rem',
+                fontSize: '1rem'
+              }}>
+                Bienvenido Administrador. Gestiona tu empresa desde aquí.
+              </p>
+              <div style={{ 
+                display: 'flex', 
+                gap: '1rem', 
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  onClick={() => navigate('/create-employee')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  ➕ Crear Empleado
+                </button>
+                
+                <button
+                  onClick={() => navigate('/admin-dashboard')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  🏢 Inicio
+                </button>
+                
+                <button
+                  onClick={() => navigate('/employee-list')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#8b5cf6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  📋 Ver Empleados
+                </button>
+
+                <button
+                  onClick={() => navigate('/clientes')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  � Ver Clientes
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* --- Sección para Empleados (Solo Employee) --- */}
+        {userProfile?.role === 'employee' && (
+          <section style={{
+            backgroundColor: '#eff6ff',
+            padding: '1.5rem',
+            margin: '1rem 0',
+            borderRadius: '12px',
+            border: '1px solid #3b82f6'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <h3 style={{ 
+                color: '#1d4ed8', 
+                marginBottom: '1rem',
+                fontSize: '1.5rem',
+                fontWeight: '600'
+              }}>
+                👤 Panel de Empleado
+              </h3>
+              <p style={{ 
+                color: '#1e40af', 
+                marginBottom: '1.5rem',
+                fontSize: '1rem'
+              }}>
+                Accede a la información de clientes y gestiona los servicios.
+              </p>
+              <div style={{ 
+                display: 'flex', 
+                gap: '1rem', 
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  onClick={() => navigate('/clientes')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  👥 Ver Clientes
+                </button>
+                
+                <button
+                  onClick={() => navigate('/cotizaciones')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  💰 Cotizaciones
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* --- Sección Superior (Hero) --- */}
         <section className={styles.heroSection}>
           <div className={styles.heroLeft}>
-            <button className={styles.quoteButton}>Cotiza tu servicio</button>
+            {/* Botón de cotización solo para clientes */}
+            {userProfile?.role === 'customer' && (
+              <button 
+                className={styles.quoteButton}
+                onClick={() => navigate('/cotizaciones')}
+              >
+                Cotiza tu servicio
+              </button>
+            )}
+            {/* Mensaje para no-clientes */}
+            {userProfile?.role && userProfile.role !== 'customer' && (
+              <div style={{
+                padding: '1rem',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '8px',
+                textAlign: 'center',
+                color: '#6b7280',
+                marginBottom: '1rem'
+              }}>
+                <p>Vista de {userProfile.role === 'admin' ? 'Administrador' : 'Empleado'}</p>
+              </div>
+            )}
             <div className={styles.aboutBox}>
               <h3>Sobre Nosotros</h3>
               <p>En TEDICS, transformamos tus desafíos tecnológicos en soluciones eficientes y robustas...</p>
@@ -94,10 +343,67 @@ const DashboardPage: React.FC = () => {
         {/* --- Sección "Trabajos realizados" --- */}
         <section className={styles.worksSection}>
           <h2 className={styles.worksTitle}>Trabajos realizados</h2>
-          <div className={styles.cardsContainer}>
-            {/* ... (Tarjetas de trabajos sin cambios) ... */}
+          
+          {/* Instalación de Cámaras */}
+          <div className={styles.categorySection}>
+            <h3 className={styles.categoryTitle}>Instalación de Cámaras</h3>
+            <div className={styles.cardsContainer}>
+              <div className={styles.workCard}>
+                <img src={instalacionCamara1} alt="Instalación de cámaras de seguridad" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={instalacionCamara2} alt="Instalación de cámaras de seguridad" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={instalacionCamara3} alt="Instalación de cámaras de seguridad" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={instalacionCamara4} alt="Instalación de cámaras de seguridad" />
+              </div>
+            </div>
           </div>
-          <button className={styles.loadMoreButton}>Descubre más clientes satisfechos</button>
+
+          {/* Mantenimiento Industrial */}
+          <div className={styles.categorySection}>
+            <h3 className={styles.categoryTitle}>Mantenimiento Industrial</h3>
+            <div className={styles.cardsContainer}>
+              <div className={styles.workCard}>
+                <img src={mantenimientoIndustrial1} alt="Mantenimiento industrial" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={mantenimientoIndustrial2} alt="Mantenimiento industrial" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={mantenimientoIndustrial3} alt="Mantenimiento industrial" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={mantenimientoIndustrial4} alt="Mantenimiento industrial" />
+              </div>
+            </div>
+          </div>
+
+          {/* Mantenimiento Línea Blanca */}
+          <div className={styles.categorySection}>
+            <h3 className={styles.categoryTitle}>Mantenimiento Línea Blanca</h3>
+            <div className={styles.cardsContainer}>
+              <div className={styles.workCard}>
+                <img src={mantenimientoLineaBlanca1} alt="Mantenimiento de línea blanca" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={mantenimientoLineaBlanca2} alt="Mantenimiento de línea blanca" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={mantenimientoLineaBlanca3} alt="Mantenimiento de línea blanca" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={mantenimientoLineaBlanca4} alt="Mantenimiento de línea blanca" />
+              </div>
+              <div className={styles.workCard}>
+                <img src={mantenimientoLineaBlanca5} alt="Mantenimiento de línea blanca" />
+              </div>
+            </div>
+          </div>
+
         </section>
       </main>
     </div>

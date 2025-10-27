@@ -1,51 +1,140 @@
 // ruta: frontend/src/pages/QuotationPage.tsx
+// Formulario de cotizaciones actualizado según especificaciones del backend
 
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { quotationsService } from '../services/api';
+import { useNavigate, Link } from 'react-router-dom';
+import { quotationsService, authService, servicesService } from '../services/api';
 import styles from './QuotationPage.module.css';
 
-// --- Tipos ---
-interface ServiceInfo {
+// --- Tipos según backend ---
+interface QuotationForm {
   serviceId: string;
-  serviceName: string;
-  serviceSlug: string;
+  description: string;
+  location: string;
+  requiredDate: string;
+  photos: string[];
 }
 
-interface QuotationForm {
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  projectDescription: string;
-  urgency: 'low' | 'medium' | 'high';
-  estimatedBudget: string;
+interface QuotationResponse {
+  quotationNumber: string;
+  tipo_servicio: string;
+  description: string;
+  location: string;
+  requiredDate: string;
+  status: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  id: string;
+  createdAt: string;
+}
+
+// Tipo para los servicios del backend
+interface Service {
+  id: string;
+  serviceNumber: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  estimatedCost?: number;
+  finalCost?: number;
+  createdAt: string;
 }
 
 const QuotationPage: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   
-  // Obtener información del servicio desde el state
-  const serviceInfo = location.state as ServiceInfo | null;
-  
   const [formData, setFormData] = useState<QuotationForm>({
-    customerName: '',
-    customerEmail: '',
-    customerPhone: '',
-    projectDescription: '',
-    urgency: 'medium',
-    estimatedBudget: ''
+    serviceId: '',
+    description: '',
+    location: '',
+    requiredDate: '',
+    photos: []
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [createdQuotation, setCreatedQuotation] = useState<QuotationResponse | null>(null);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [userProfile, setUserProfile] = useState<any>(null);
+  
+  // Estado para servicios cargados desde el backend
+  const [availableServices, setAvailableServices] = useState<Service[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(true);
 
-  // Si no hay información del servicio, redirigir al dashboard
+  // Cargar servicios disponibles desde el backend
   useEffect(() => {
-    if (!serviceInfo) {
-      navigate('/dashboard');
-    }
-  }, [serviceInfo, navigate]);
+    const loadServices = async () => {
+      try {
+        setIsLoadingServices(true);
+        const services = await servicesService.getAll();
+        console.log('✅ Servicios cargados desde el backend:', services);
+        console.log('📊 Número de servicios recibidos:', services?.length);
+        
+        // Filtrar para mostrar solo TIPOS únicos de servicios (por título)
+        // Esto agrupa múltiples instancias del mismo tipo de servicio
+        const uniqueServiceTypes = Array.isArray(services) 
+          ? services.reduce((acc: Service[], service) => {
+              // Verificar si ya existe un servicio con el mismo título
+              const exists = acc.find(s => s.title === service.title);
+              if (!exists) {
+                acc.push(service);
+              }
+              return acc;
+            }, [])
+          : [];
+        
+        console.log('🔍 Tipos de servicios únicos:', uniqueServiceTypes);
+        console.log('📊 Número de tipos de servicios:', uniqueServiceTypes.length);
+        
+        setAvailableServices(uniqueServiceTypes);
+      } catch (error) {
+        console.error('❌ Error cargando servicios:', error);
+        // En caso de error, mostrar mensaje pero permitir continuar
+        setAvailableServices([]);
+      } finally {
+        setIsLoadingServices(false);
+      }
+    };
+
+    loadServices();
+  }, []);
+
+  // Cargar perfil del usuario para verificar autenticación
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+        
+        const profile = await authService.getProfile();
+        const userData = profile.user || profile;
+        setUserProfile(userData);
+        
+        // Solo clientes, admin y empleados pueden crear cotizaciones
+        if (!['customer', 'admin', 'employee'].includes(userData.role)) {
+          alert('No tienes permisos para crear cotizaciones');
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error cargando perfil:', error);
+        navigate('/login');
+      }
+    };
+
+    loadUserProfile();
+  }, [navigate]);
+
+  // Establecer fecha mínima (hoy)
+  const getMinDateTime = () => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -53,69 +142,173 @@ const QuotationPage: React.FC = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Limpiar error del campo cuando el usuario escribe
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: { [key: string]: string } = {};
+    
+    if (!formData.serviceId) {
+      newErrors.serviceId = 'Debes seleccionar un tipo de servicio';
+    }
+    
+    if (!formData.description || formData.description.length < 10) {
+      newErrors.description = 'La descripción debe tener al menos 10 caracteres';
+    }
+    
+    if (!formData.location) {
+      newErrors.location = 'La ubicación es requerida';
+    }
+    
+    if (!formData.requiredDate) {
+      newErrors.requiredDate = 'Debes seleccionar una fecha';
+    } else {
+      const selectedDate = new Date(formData.requiredDate);
+      const now = new Date();
+      if (selectedDate < now) {
+        newErrors.requiredDate = 'La fecha no puede ser en el pasado';
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
-      // Preparar datos de la cotización para el backend
+      // Convertir fecha a ISO 8601
+      const requiredDateISO = new Date(formData.requiredDate).toISOString();
+      
+      // Preparar datos según backend
       const quotationData = {
-        customerName: formData.customerName,
-        customerEmail: formData.customerEmail,
-        customerPhone: formData.customerPhone,
-        serviceName: serviceInfo?.serviceName || 'Servicio Solicitado',
-        serviceCategory: 'Instalación', // Categoría por defecto
-        projectDescription: formData.projectDescription,
-        urgency: formData.urgency,
-        estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
-        status: 'PENDIENTE', // Estado inicial
-        notes: `Cotización solicitada para: ${serviceInfo?.serviceName}`
+        serviceId: formData.serviceId,
+        description: formData.description,
+        location: formData.location,
+        requiredDate: requiredDateISO,
+        photos: formData.photos.length > 0 ? formData.photos : undefined
       };
 
-      console.log('Enviando cotización al backend:', quotationData);
+      console.log('📤 Enviando cotización al backend:', quotationData);
       
       // Enviar al backend
       const result = await quotationsService.create(quotationData);
-      console.log('Cotización creada exitosamente:', result);
+      console.log('✅ Cotización creada exitosamente:', result);
       
+      setCreatedQuotation(result);
       setSubmitted(true);
     } catch (error: any) {
-      console.error('Error al enviar cotización:', error);
+      console.error('❌ Error al enviar cotización:', error);
       
-      // Mostrar error específico si está disponible
-      const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
-      alert(`Error al enviar la cotización: ${errorMessage}`);
+      // Manejo de errores específicos
+      if (error.response?.status === 401) {
+        alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+        navigate('/login');
+      } else if (error.response?.status === 403) {
+        alert('No tienes permisos para crear cotizaciones.');
+        navigate('/dashboard');
+      } else if (error.response?.status === 400) {
+        const errorData = error.response?.data;
+        if (errorData?.message) {
+          if (Array.isArray(errorData.message)) {
+            alert(`Errores de validación:\n${errorData.message.join('\n')}`);
+          } else {
+            alert(`Error de validación: ${errorData.message}`);
+          }
+        } else {
+          alert('Datos del formulario inválidos. Por favor revisa todos los campos.');
+        }
+      } else {
+        alert('Error al crear la cotización. Por favor intenta nuevamente.');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!serviceInfo) {
-    return null; // Se redirigirá automáticamente
+  if (!userProfile) {
+    return (
+      <div className={styles.quotationPage}>
+        <div className={styles.container}>
+          <h1 style={{ color: 'white', textAlign: 'center' }}>Cargando...</h1>
+        </div>
+      </div>
+    );
   }
 
-  if (submitted) {
+  if (submitted && createdQuotation) {
     return (
       <div className={styles.quotationPage}>
         <div className={styles.container}>
           <div className={styles.successCard}>
             <div className={styles.successIcon}>✅</div>
-            <h1 className={styles.successTitle}>¡Cotización Enviada!</h1>
+            <h1 className={styles.successTitle}>¡Cotización Creada Exitosamente!</h1>
+            
+            <div className={styles.quotationDetails}>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Número de Cotización:</span>
+                <span className={styles.detailValue}><strong>{createdQuotation.quotationNumber}</strong></span>
+              </div>
+              
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Estado:</span>
+                <span 
+                  className={styles.statusBadge}
+                  style={{ backgroundColor: createdQuotation.status.color }}
+                >
+                  {createdQuotation.status.name}
+                </span>
+              </div>
+              
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Servicio:</span>
+                <span className={styles.detailValue}>{createdQuotation.tipo_servicio}</span>
+              </div>
+              
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Ubicación:</span>
+                <span className={styles.detailValue}>{createdQuotation.location}</span>
+              </div>
+            </div>
+            
             <p className={styles.successMessage}>
-              Hemos recibido tu solicitud de cotización para <strong>{serviceInfo.serviceName}</strong>.
-              Nuestro equipo se pondrá en contacto contigo dentro de las próximas 24 horas.
+              Te notificaremos cuando un empleado revise tu solicitud.
             </p>
+            
             <div className={styles.successActions}>
-              <Link to="/dashboard" className={styles.primaryButton}>
-                Volver al Dashboard
-              </Link>
               <Link to="/cotizaciones" className={styles.primaryButton}>
-                Ver Cotizaciones
+                Ver Mis Cotizaciones
+              </Link>
+              <Link to="/dashboard" className={styles.secondaryButton}>
+                Volver al Inicio
               </Link>
               <button 
-                onClick={() => setSubmitted(false)}
+                onClick={() => {
+                  setSubmitted(false);
+                  setCreatedQuotation(null);
+                  setFormData({
+                    serviceId: '',
+                    description: '',
+                    location: '',
+                    requiredDate: '',
+                    photos: []
+                  });
+                }}
                 className={styles.secondaryButton}
               >
                 Nueva Cotización
@@ -132,133 +325,149 @@ const QuotationPage: React.FC = () => {
       <div className={styles.container}>
         {/* Header */}
         <div className={styles.header}>
-          <Link to={`/services/${serviceInfo.serviceSlug}`} className={styles.backButton}>
-            ← Volver al Servicio
+          <Link to="/dashboard" className={styles.backButton}>
+            ← Volver al Inicio
           </Link>
           <h1 className={styles.pageTitle}>Solicitar Cotización</h1>
-          <p className={styles.serviceInfo}>
-            Para: <strong>{serviceInfo.serviceName}</strong>
-          </p>
+          <p className={styles.pageSubtitle}>Complete el formulario para solicitar un servicio técnico</p>
         </div>
 
         {/* Formulario */}
         <div className={styles.formCard}>
           <form onSubmit={handleSubmit} className={styles.form}>
+            {/* Sección 1: Tipo de Servicio */}
             <div className={styles.formSection}>
-              <h2 className={styles.sectionTitle}>Información de Contacto</h2>
+              <h2 className={styles.sectionTitle}>📋 Tipo de Servicio</h2>
               
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="customerName" className={styles.label}>
-                    Nombre Completo *
-                  </label>
-                  <input
-                    type="text"
-                    id="customerName"
-                    name="customerName"
-                    value={formData.customerName}
-                    onChange={handleInputChange}
-                    required
-                    className={styles.input}
-                    placeholder="Tu nombre completo"
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="customerEmail" className={styles.label}>
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="customerEmail"
-                    name="customerEmail"
-                    value={formData.customerEmail}
-                    onChange={handleInputChange}
-                    required
-                    className={styles.input}
-                    placeholder="tu@email.com"
-                  />
-                </div>
-              </div>
-
               <div className={styles.formGroup}>
-                <label htmlFor="customerPhone" className={styles.label}>
-                  Teléfono *
+                <label htmlFor="serviceId" className={styles.label}>
+                  Selecciona el tipo de servicio que necesitas *
                 </label>
-                <input
-                  type="tel"
-                  id="customerPhone"
-                  name="customerPhone"
-                  value={formData.customerPhone}
+                <select
+                  id="serviceId"
+                  name="serviceId"
+                  value={formData.serviceId}
                   onChange={handleInputChange}
                   required
-                  className={styles.input}
-                  placeholder="+502 1234-5678"
-                />
+                  disabled={isLoadingServices}
+                  className={`${styles.select} ${errors.serviceId ? styles.inputError : ''}`}
+                >
+                  <option value="">
+                    {isLoadingServices ? '⏳ Cargando tipos de servicios...' : '-- Seleccione un tipo de servicio --'}
+                  </option>
+                  {availableServices.map((service, index) => (
+                    <option 
+                      key={`${service.id}-${index}`} 
+                      value={service.id}
+                      title={service.description || 'Sin descripción'}
+                    >
+                      {service.title}
+                    </option>
+                  ))}
+                </select>
+                {errors.serviceId && (
+                  <span className={styles.errorMessage}>{errors.serviceId}</span>
+                )}
+                {!isLoadingServices && availableServices.length === 0 && (
+                  <span className={styles.errorMessage}>
+                    ⚠️ No hay tipos de servicios disponibles. Por favor contacta al administrador.
+                  </span>
+                )}
+                {!isLoadingServices && availableServices.length > 0 && (
+                  <div className={styles.infoMessage} style={{ marginTop: '8px', fontSize: '0.9rem', color: '#888' }}>
+                    ℹ️ {availableServices.length} tipo{availableServices.length !== 1 ? 's' : ''} de servicio{availableServices.length !== 1 ? 's' : ''} disponible{availableServices.length !== 1 ? 's' : ''}
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Sección 2: Descripción del Problema */}
             <div className={styles.formSection}>
-              <h2 className={styles.sectionTitle}>Detalles del Proyecto</h2>
+              <h2 className={styles.sectionTitle}>📝 Descripción del Problema</h2>
               
               <div className={styles.formGroup}>
-                <label htmlFor="projectDescription" className={styles.label}>
-                  Descripción del Proyecto *
+                <label htmlFor="description" className={styles.label}>
+                  Describe detalladamente el problema o servicio que necesitas *
+                  <span className={styles.labelHint}>(mínimo 10 caracteres)</span>
                 </label>
                 <textarea
-                  id="projectDescription"
-                  name="projectDescription"
-                  value={formData.projectDescription}
+                  id="description"
+                  name="description"
+                  value={formData.description}
                   onChange={handleInputChange}
                   required
-                  rows={4}
-                  className={styles.textarea}
-                  placeholder="Describe detalladamente lo que necesitas..."
+                  minLength={10}
+                  rows={5}
+                  className={`${styles.textarea} ${errors.description ? styles.inputError : ''}`}
+                  placeholder="Ej: Mi laptop HP Pavilion no enciende, cuando presiono el botón de power no responde. Creo que puede ser un problema con la batería o el cargador..."
                 />
-              </div>
-
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="urgency" className={styles.label}>
-                    Urgencia
-                  </label>
-                  <select
-                    id="urgency"
-                    name="urgency"
-                    value={formData.urgency}
-                    onChange={handleInputChange}
-                    className={styles.select}
-                  >
-                    <option value="low">Baja (1-2 semanas)</option>
-                    <option value="medium">Media (3-5 días)</option>
-                    <option value="high">Alta (1-2 días)</option>
-                  </select>
+                <div className={styles.charCount}>
+                  {formData.description.length} caracteres
                 </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="estimatedBudget" className={styles.label}>
-                    Presupuesto Estimado
-                  </label>
-                  <input
-                    type="text"
-                    id="estimatedBudget"
-                    name="estimatedBudget"
-                    value={formData.estimatedBudget}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="Ej: Q. 5,000 - Q. 10,000"
-                  />
-                </div>
+                {errors.description && (
+                  <span className={styles.errorMessage}>{errors.description}</span>
+                )}
               </div>
             </div>
 
+            {/* Sección 3: Ubicación y Fecha */}
+            <div className={styles.formSection}>
+              <h2 className={styles.sectionTitle}>📍 Ubicación y Fecha</h2>
+              
+              <div className={styles.formGroup}>
+                <label htmlFor="location" className={styles.label}>
+                  Ubicación donde se requiere el servicio *
+                </label>
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  required
+                  className={`${styles.input} ${errors.location ? styles.inputError : ''}`}
+                  placeholder="Ej: Ciudad de Guatemala, Zona 10, Edificio Empresarial Torre II"
+                />
+                {errors.location && (
+                  <span className={styles.errorMessage}>{errors.location}</span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="requiredDate" className={styles.label}>
+                  Fecha y hora deseada para el servicio *
+                </label>
+                <input
+                  type="datetime-local"
+                  id="requiredDate"
+                  name="requiredDate"
+                  value={formData.requiredDate}
+                  onChange={handleInputChange}
+                  required
+                  min={getMinDateTime()}
+                  className={`${styles.input} ${errors.requiredDate ? styles.inputError : ''}`}
+                />
+                {errors.requiredDate && (
+                  <span className={styles.errorMessage}>{errors.requiredDate}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Botón de Envío */}
             <div className={styles.formActions}>
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className={styles.submitButton}
               >
-                {isSubmitting ? 'Enviando...' : 'Enviar Cotización'}
+                {isSubmitting ? (
+                  <>
+                    <span className={styles.spinner}></span>
+                    Enviando...
+                  </>
+                ) : (
+                  '🚀 Enviar Solicitud de Cotización'
+                )}
               </button>
             </div>
           </form>

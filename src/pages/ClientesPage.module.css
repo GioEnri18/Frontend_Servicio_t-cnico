@@ -144,6 +144,12 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
+  color: #2d3748;
+  background-color: white;
+}
+
+.searchInput::placeholder {
+  color: #a0aec0;
 }
 
 .searchInput:focus {
@@ -165,6 +171,12 @@
   background: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  color: #2d3748;
+}
+
+.filterSelect option {
+  color: #2d3748;
+  background: white;
 }
 
 .filterSelect:focus {
@@ -364,10 +376,12 @@
   background: white;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  color: #2d3748;
 }
 
 .contactIcon {
   font-size: 1.2rem;
+  color: #667eea;
 }
 
 .statsGrid {

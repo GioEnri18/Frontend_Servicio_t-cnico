@@ -83,6 +83,9 @@ export const useAuth = () => {
         localStorage.setItem('jwt_token', authToken);
         localStorage.setItem('user_email', email);
         
+        // IMPORTANTE: Establecer cookie para el backend (que espera cookies)
+        document.cookie = `token=${authToken}; path=/; secure=false; samesite=lax; max-age=86400`;
+        
         setAuthState({
           isAuthenticated: true,
           user: user || { id: '1', email },
@@ -117,9 +120,13 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      // Logout es solo local, no necesita llamada al backend
+      // Limpiar localStorage
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('user_email');
+      
+      // IMPORTANTE: Limpiar la cookie del token
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
       setAuthState({
         isAuthenticated: false,
         user: null,

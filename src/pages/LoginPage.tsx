@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
 import styles from './LoginPage.module.css';
 
@@ -10,7 +10,7 @@ const EyeOffIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" heig
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('admin@tedics.com');
-  const [password, setPassword] = useState('tedics123');
+  const [password, setPassword] = useState('123456');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,19 +21,13 @@ const LoginPage: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
-    console.log('🔄 Iniciando login híbrido (backend + fallback)...', { email, password });
-
     try {
-      // Intentar autenticación con el backend primero
-      console.log('🔄 Intentando login con backend...');
       const response = await authService.login(email, password);
-      console.log('✅ Respuesta del backend:', response);
       
       const { token, access_token, user } = response;
       const authToken = token || access_token;
       
       if (authToken) {
-        console.log('✅ Login con backend exitoso');
         localStorage.setItem('jwt_token', authToken);
         localStorage.setItem('user_email', user?.email || email);
         if (user) {
@@ -43,36 +37,25 @@ const LoginPage: React.FC = () => {
         return;
       }
     } catch (error: any) {
-      console.log('⚠️ Backend no disponible, usando fallback local...');
-      
-      // Fallback: Verificar credenciales predefinidas
-      if (email === 'admin@tedics.com' && password === 'tedics123') {
-        console.log('✅ Credenciales válidas, usando autenticación local');
-        
-        // Simular una pequeña espera para mostrar el loading
-        setTimeout(() => {
-          localStorage.setItem('jwt_token', 'demo-token-tedics-2025');
-          localStorage.setItem('user_email', email);
-          localStorage.setItem('user_data', JSON.stringify({
-            id: 1,
-            email: email,
-            name: 'Administrador TEDICS',
-            role: 'admin'
-          }));
-          
-          setIsLoading(false);
-          navigate('/dashboard');
-        }, 1000);
-        
-        return;
-      } else {
-        // Credenciales incorrectas en modo fallback
-        setError('Credenciales incorrectas. Backend no disponible. Usa: admin@tedics.com / tedics123');
-        setIsLoading(false);
-        return;
-      }
-    }
 
+      
+      let errorMessage = 'Error de autenticación';
+      
+      if (error.response?.status === 401) {
+        // Mostrar el mensaje específico del backend si está disponible
+        const backendMessage = error.response?.data?.message || error.response?.data?.error;
+        errorMessage = backendMessage || 'Email o contraseña incorrectos';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Usuario no encontrado';
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+        errorMessage = 'No se puede conectar al servidor. Verifica que el backend esté ejecutándose en puerto 3000';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Error interno del servidor';
+      }
+      
+      setError(errorMessage);
+    }
+    
     setIsLoading(false);
   };
 
@@ -80,13 +63,7 @@ const LoginPage: React.FC = () => {
     navigate('/about');
   };
 
-  // Función de test para bypassed login
-  const handleTestLogin = () => {
-    console.log('🚀 Test login directo');
-    localStorage.setItem('jwt_token', 'demo-token-tedics-2025');
-    localStorage.setItem('user_email', 'admin@tedics.com');
-    navigate('/dashboard');
-  };
+
 
   return (
     <div className={styles.loginPage}>
@@ -114,7 +91,7 @@ const LoginPage: React.FC = () => {
       <div className={styles.loginContainer}>
         <h1 className={styles.title}>Iniciar Sesión</h1>
         <p className={styles.subtitle}>
-          ¿Aún no tienes una cuenta? <a href="/register">Crear nueva cuenta</a>
+          ¿Aún no tienes una cuenta? <Link to="/register">Crear nueva cuenta</Link>
         </p>
         
         <form onSubmit={handleSubmit}>
@@ -132,15 +109,6 @@ const LoginPage: React.FC = () => {
           </div>
           
           <div className={styles.formGroup}>
-            <span className={styles.inputIcon}>
-              <button
-                type="button"
-                onClick={() => setPasswordVisible(!passwordVisible)}
-                className={styles.eyeButton}
-              >
-                {passwordVisible ? <EyeOffIcon /> : <EyeIcon />}
-              </button>
-            </span>
             <input 
               type={passwordVisible ? "text" : "password"} 
               id="password" 
@@ -150,6 +118,15 @@ const LoginPage: React.FC = () => {
               className={styles.formControl} 
               placeholder="Contraseña" 
             />
+            <button
+              type="button"
+              onClick={() => setPasswordVisible(!passwordVisible)}
+              className={styles.eyeButton}
+              aria-label={passwordVisible ? "Ocultar contraseña" : "Mostrar contraseña"}
+              tabIndex={-1}
+            >
+              {passwordVisible ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
           </div>
 
           {error && <div className={styles.errorMessage}>{error}</div>}
@@ -203,20 +180,7 @@ const LoginPage: React.FC = () => {
           >
             Log Debug Info
           </button>
-          <button 
-            onClick={handleTestLogin}
-            style={{
-              padding: '0.3rem 0.6rem',
-              background: 'rgba(46, 204, 113, 0.8)',
-              border: 'none',
-              borderRadius: '4px',
-              color: 'white',
-              fontSize: '0.7rem',
-              cursor: 'pointer'
-            }}
-          >
-            🚀 Test Login (Bypass)
-          </button>
+
         </div>
       </div>
     </div>

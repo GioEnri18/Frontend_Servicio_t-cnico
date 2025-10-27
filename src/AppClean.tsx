@@ -2,12 +2,15 @@ import { Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import CreateEmployeePage from './pages/CreateEmployeePage';
+import EmployeeListPage from './pages/EmployeeListPage';
 import DashboardPage from './pages/DashboardPage';
 import TestLoginPage from './pages/TestLoginPage';
 import AboutPage from './pages/AboutPage';
 import ServiceDetailPage from './pages/ServiceDetailPage';
 import QuotationPage from './pages/QuotationPage';
 import QuoteManagementPage from './pages/QuoteManagementPage';
+import ProductsManagementPage from './pages/ProductsManagementPage';
 // import QuoteProcessingPage from './pages/admin/QuoteProcessingPage';
 import UserProfilePage from './pages/UserProfilePage';
 // import ClientManagementPage from './pages/admin/ClientManagementPage';
@@ -55,6 +58,11 @@ function App() {
           <QuotationPage />
         </ProtectedRoute>
       } />
+      <Route path="/quotations" element={
+        <ProtectedRoute>
+          <QuoteManagementPage />
+        </ProtectedRoute>
+      } />
       <Route path="/cotizaciones" element={
         <ProtectedRoute>
           <QuoteManagementPage />
@@ -75,6 +83,21 @@ function App() {
       <Route path="/admin-dashboard" element={
         <ProtectedRoute>
           <AdminDashboardPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/create-employee" element={
+        <ProtectedRoute>
+          <CreateEmployeePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/employee-list" element={
+        <ProtectedRoute>
+          <EmployeeListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/products" element={
+        <ProtectedRoute>
+          <ProductsManagementPage />
         </ProtectedRoute>
       } />
       {/* Rutas admin adicionales temporalmente comentadas

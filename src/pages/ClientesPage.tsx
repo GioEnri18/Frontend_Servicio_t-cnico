@@ -1,7 +1,8 @@
 // ruta: frontend/src/pages/ClientesPage.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { authService, userService } from '../services/api';
 import styles from './ClientesPage.module.css';
 
 // --- Tipos ---
@@ -29,153 +30,94 @@ interface Client {
   services: ServiceRecord[];
 }
 
-// --- Datos simulados ---
-const mockClients: Client[] = [
-  {
-    id: '1',
-    name: 'Juan Pérez García',
-    email: 'juan.perez@email.com',
-    phone: '+502 1234-5678',
-    address: 'Zona 10, Ciudad de Guatemala',
-    totalServices: 3,
-    totalSpent: 2450.00,
-    lastService: '2024-10-05',
-    status: 'active',
-    registeredDate: '2024-01-15',
-    services: [
-      {
-        id: 's1',
-        serviceName: 'Instalación Eléctrica Residencial',
-        serviceType: 'Instalación',
-        date: '2024-10-05',
-        status: 'completed',
-        cost: 850.00,
-        description: 'Instalación completa de sistema eléctrico en sala y cocina'
-      },
-      {
-        id: 's2',
-        serviceName: 'Mantenimiento Sistema Eléctrico',
-        serviceType: 'Mantenimiento',
-        date: '2024-08-20',
-        status: 'completed',
-        cost: 300.00,
-        description: 'Revisión general y mantenimiento preventivo'
-      },
-      {
-        id: 's3',
-        serviceName: 'Reparación Interruptores',
-        serviceType: 'Reparación',
-        date: '2024-06-10',
-        status: 'completed',
-        cost: 1300.00,
-        description: 'Reemplazo de interruptores defectuosos en toda la casa'
-      }
-    ]
-  },
-  {
-    id: '2',
-    name: 'María González López',
-    email: 'maria.gonzalez@empresa.com',
-    phone: '+502 9876-5432',
-    address: 'Zona 15, Guatemala',
-    totalServices: 2,
-    totalSpent: 1680.00,
-    lastService: '2024-09-28',
-    status: 'active',
-    registeredDate: '2024-03-20',
-    services: [
-      {
-        id: 's4',
-        serviceName: 'Configuración de Cámaras de Seguridad',
-        serviceType: 'Instalación',
-        date: '2024-09-28',
-        status: 'completed',
-        cost: 940.00,
-        description: 'Instalación de 4 cámaras de seguridad con sistema de monitoreo'
-      },
-      {
-        id: 's5',
-        serviceName: 'Instalación Sistema Domótico',
-        serviceType: 'Instalación',
-        date: 'in-progress',
-        status: 'in-progress',
-        cost: 740.00,
-        description: 'Sistema de automatización para luces y climatización'
-      }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Carlos Mendoza Ruiz',
-    email: 'carlos.mendoza@gmail.com',
-    phone: '+502 5555-1234',
-    address: 'Antigua Guatemala',
-    totalServices: 5,
-    totalSpent: 4250.00,
-    lastService: '2024-10-01',
-    status: 'active',
-    registeredDate: '2023-11-08',
-    services: [
-      {
-        id: 's6',
-        serviceName: 'Instalación Panel Solar',
-        serviceType: 'Energía Renovable',
-        date: '2024-10-01',
-        status: 'completed',
-        cost: 1800.00,
-        description: 'Instalación de panel solar de 5kW para casa residencial'
-      },
-      {
-        id: 's7',
-        serviceName: 'Mantenimiento Sistema Solar',
-        serviceType: 'Mantenimiento',
-        date: '2024-07-15',
-        status: 'completed',
-        cost: 200.00,
-        description: 'Limpieza y verificación de sistema solar'
-      }
-    ]
-  },
-  {
-    id: '4',
-    name: 'Ana Lucía Morales',
-    email: 'ana.morales@hotmail.com',
-    phone: '+502 7777-8888',
-    address: 'Zona 7, Quetzaltenango',
-    totalServices: 1,
-    totalSpent: 450.00,
-    lastService: '2024-09-15',
-    status: 'active',
-    registeredDate: '2024-09-01',
-    services: [
-      {
-        id: 's8',
-        serviceName: 'Diagnóstico Eléctrico',
-        serviceType: 'Diagnóstico',
-        date: '2024-09-15',
-        status: 'completed',
-        cost: 450.00,
-        description: 'Evaluación completa del sistema eléctrico residencial'
-      }
-    ]
-  }
-];
+interface UserProfile {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  role?: 'customer' | 'admin' | 'technician' | 'employee';
+}
 
 // --- Componente Principal ---
 const ClientesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isVerifyingAccess, setIsVerifyingAccess] = useState(true);
 
-  // Simular carga de datos
+  // Verificar acceso (admin o employee)
   useEffect(() => {
-    setTimeout(() => {
-      setClients(mockClients);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    const verifyAccess = async () => {
+      try {
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        const profile = await authService.getProfile();
+        const userData = profile.user || profile;
+        
+        // Permitir acceso SOLO a admin y employee (NO a customers)
+        if (userData.role !== 'admin' && userData.role !== 'employee' && userData.role !== 'technician') {
+          console.log('❌ Acceso denegado. Rol:', userData.role);
+          navigate('/dashboard');
+          return;
+        }
+        
+        setUserProfile(userData);
+      } catch (error) {
+        console.error('Error verificando acceso:', error);
+        navigate('/login');
+      } finally {
+        setIsVerifyingAccess(false);
+      }
+    };
+
+    verifyAccess();
+  }, [navigate]);
+
+  // Cargar clientes desde el backend
+  useEffect(() => {
+    const loadClients = async () => {
+      if (!userProfile || isVerifyingAccess) return;
+      
+      setLoading(true);
+      try {
+        // Llamada real al backend
+        const response = await userService.getCustomers();
+        console.log('✅ Clientes cargados desde el backend:', response);
+        
+        // Mapear la respuesta del backend a la estructura esperada
+        const mappedClients: Client[] = response.map((user: any) => ({
+          id: user.id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+          email: user.email,
+          phone: user.phone || 'No registrado',
+          address: user.address || 'No registrada',
+          totalServices: user.totalServices || 0,
+          totalSpent: user.totalSpent || 0,
+          lastService: user.lastService || 'N/A',
+          status: user.status || 'active',
+          registeredDate: user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : 'N/A',
+          services: user.services || []
+        }));
+        
+        setClients(mappedClients);
+      } catch (error) {
+        console.error('❌ Error cargando clientes:', error);
+        setClients([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClients();
+  }, [userProfile, isVerifyingAccess]);
 
   // Filtrar clientes
   const filteredClients = clients.filter(client => {
@@ -209,6 +151,17 @@ const ClientesPage: React.FC = () => {
     }
   };
 
+  if (isVerifyingAccess) {
+    return (
+      <div className={styles.clientesPage}>
+        <div className={styles.loadingContainer}>
+          <div className={styles.spinner}></div>
+          <p className={styles.loadingText}>Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className={styles.clientesPage}>
@@ -225,10 +178,51 @@ const ClientesPage: React.FC = () => {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerContent}>
-          <Link to="/" className={styles.backButton}>
-            ← Volver al Panel Principal
-          </Link>
-          <h1 className={styles.pageTitle}>Gestión de Clientes</h1>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className={styles.backButton}
+            >
+              🏠 Dashboard
+            </button>
+            {userProfile?.role === 'admin' && (
+              <>
+                <button 
+                  onClick={() => navigate('/admin-dashboard')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  ⚙️ Panel Admin
+                </button>
+                <button 
+                  onClick={() => navigate('/employee-list')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  👥 Ver Empleados
+                </button>
+              </>
+            )}
+          </div>
+          <h1 className={styles.pageTitle}>
+            👥 Gestión de Clientes
+            {userProfile?.role === 'admin' && <span style={{ color: '#10b981' }}> (Admin)</span>}
+            {userProfile?.role === 'employee' && <span style={{ color: '#3b82f6' }}> (Empleado)</span>}
+          </h1>
           <p className={styles.pageSubtitle}>Historial de clientes atendidos y servicios realizados</p>
         </div>
       </div>

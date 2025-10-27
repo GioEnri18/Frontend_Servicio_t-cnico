@@ -61,7 +61,12 @@ const Header: React.FC = () => {
           )}
 
           {isAuthenticated ? (
-            <button onClick={handleLogout} className="btn-logout">Logout</button>
+            <>
+              <Link to="/profile" className="nav-link">👤 Mi Perfil</Link>
+              <button onClick={handleLogout} className="btn-logout">
+                🚪 Cerrar Sesión
+              </button>
+            </>
           ) : (
             <Link to="/login" className="nav-link">Login</Link>
           )}

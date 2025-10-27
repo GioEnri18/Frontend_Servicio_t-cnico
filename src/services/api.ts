@@ -19,7 +19,6 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log(`🚀 Sending request to: ${config.url}`);
     return config;
   },
   (error) => {
@@ -34,15 +33,15 @@ apiClient.interceptors.response.use(
   (error) => {
     console.error('❌ API Response Error:', error.response || error.message);
 
-    // Si el error es 401 (No autorizado), borra los datos de sesión y redirige al login
+    // Si el error es 401 (No autorizado), solo limpiar datos de sesión SIN redirect automático
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('jwt_token');
-      localStorage.removeItem('user_email'); // O cualquier otro dato de usuario
+      console.warn('Token inválido o expirado, limpiando sesión');
       
-      // Evita bucles de redirección si ya estamos en el login
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      localStorage.removeItem('jwt_token');
+      localStorage.removeItem('user_email');
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
+      // NO hacer redirect automático, dejar que los componentes manejen el error
     }
     
     return Promise.reject(error);
@@ -50,14 +49,14 @@ apiClient.interceptors.response.use(
 );
 
 // Función helper para extraer los datos de la respuesta
-const handleResponse = (response) => response.data;
+const handleResponse = (response: any) => response.data;
 
 // === SERVICIOS DE API CORREGIDOS Y SIMPLIFICADOS ===
 
 // Autenticación (Coincide con /api/auth/*)
 export const authService = {
-  login: (email, password) => apiClient.post('/auth/login', { email, password }).then(handleResponse),
-  register: (userData) => apiClient.post('/auth/register', userData).then(handleResponse),
+  login: (email: string, password: string) => apiClient.post('/auth/login', { email, password }).then(handleResponse),
+  register: (userData: any) => apiClient.post('/auth/register', userData).then(handleResponse),
   getProfile: () => apiClient.get('/auth/me').then(handleResponse), // Corregido a /auth/me
 };
 
@@ -66,29 +65,44 @@ export const userService = {
   getAll: () => apiClient.get('/users').then(handleResponse),
   getCustomers: () => apiClient.get('/users/customers').then(handleResponse),
   getEmployees: () => apiClient.get('/users/employees').then(handleResponse),
-  getById: (id) => apiClient.get(`/users/${id}`).then(handleResponse),
-  update: (id, userData) => apiClient.patch(`/users/${id}`, userData).then(handleResponse), // Usar PATCH como en el backend
-  delete: (id) => apiClient.delete(`/users/${id}`).then(handleResponse),
-  updateProfile: (profileData) => apiClient.patch('/users/profile', profileData).then(handleResponse),
+  getById: (id: string) => apiClient.get(`/users/${id}`).then(handleResponse),
+  update: (id: string, userData: any) => apiClient.patch(`/users/${id}`, userData).then(handleResponse), // Usar PATCH como en el backend
+  delete: (id: string) => apiClient.delete(`/users/${id}`).then(handleResponse),
+  updateProfile: (profileData: any) => apiClient.patch('/users/profile', profileData).then(handleResponse),
 };
 
 // Productos (Coincide con /api/products/*)
 export const productsService = {
   getAll: () => apiClient.get('/products').then(handleResponse),
-  getById: (id) => apiClient.get(`/products/${id}`).then(handleResponse),
-  create: (productData) => apiClient.post('/products', productData).then(handleResponse),
-  update: (id, productData) => apiClient.patch(`/products/${id}`, productData).then(handleResponse), // Usar PATCH
-  delete: (id) => apiClient.delete(`/products/${id}`).then(handleResponse),
+  getById: (id: string) => apiClient.get(`/products/${id}`).then(handleResponse),
+  create: (productData: any) => apiClient.post('/products', productData).then(handleResponse),
+  update: (id: string, productData: any) => apiClient.patch(`/products/${id}`, productData).then(handleResponse), // Usar PATCH
+  delete: (id: string) => apiClient.delete(`/products/${id}`).then(handleResponse),
 };
 
-// Cotizaciones (Corregido de /quotes a /quotations)
+// Categorías (Coincide con /api/categories/*)
+export const categoriesService = {
+  getAll: () => apiClient.get('/categories').then(handleResponse),
+  getById: (id: string) => apiClient.get(`/categories/${id}`).then(handleResponse),
+  create: (categoryData: any) => apiClient.post('/categories', categoryData).then(handleResponse),
+  update: (id: string, categoryData: any) => apiClient.patch(`/categories/${id}`, categoryData).then(handleResponse),
+  delete: (id: string) => apiClient.delete(`/categories/${id}`).then(handleResponse),
+};
+
+// Cotizaciones (Estructura actualizada según backend)
 export const quotationsService = {
   getAll: () => apiClient.get('/quotations').then(handleResponse),
   getMyQuotations: () => apiClient.get('/quotations/my-quotations').then(handleResponse),
-  getById: (id) => apiClient.get(`/quotations/${id}`).then(handleResponse),
-  create: (quotationData) => apiClient.post('/quotations', quotationData).then(handleResponse),
-  update: (id, quotationData) => apiClient.patch(`/quotations/${id}`, quotationData).then(handleResponse), // Usar PATCH
-  delete: (id) => apiClient.delete(`/quotations/${id}`).then(handleResponse),
+  getById: (id: string) => apiClient.get(`/quotations/${id}`).then(handleResponse),
+  create: (quotationData: {
+    serviceId: string;
+    description: string;
+    location: string;
+    requiredDate: string;
+    photos?: string[];
+  }) => apiClient.post('/quotations', quotationData).then(handleResponse),
+  update: (id: string, quotationData: any) => apiClient.patch(`/quotations/${id}`, quotationData).then(handleResponse),
+  delete: (id: string) => apiClient.delete(`/quotations/${id}`).then(handleResponse),
 };
 
 // Servicios (Coincide con /api/services/*)
@@ -96,17 +110,22 @@ export const servicesService = {
   getAll: () => apiClient.get('/services').then(handleResponse),
   getMyServices: () => apiClient.get('/services/my-services').then(handleResponse),
   getAssignedToMe: () => apiClient.get('/services/assigned-to-me').then(handleResponse),
-  getById: (id) => apiClient.get(`/services/${id}`).then(handleResponse),
-  create: (serviceData) => apiClient.post('/services', serviceData).then(handleResponse),
-  update: (id, serviceData) => apiClient.patch(`/services/${id}`, serviceData).then(handleResponse), // Usar PATCH
-  delete: (id) => apiClient.delete(`/services/${id}`).then(handleResponse),
+  getById: (id: string) => apiClient.get(`/services/${id}`).then(handleResponse),
+  create: (serviceData: any) => apiClient.post('/services', serviceData).then(handleResponse),
+  update: (id: string, serviceData: any) => apiClient.patch(`/services/${id}`, serviceData).then(handleResponse), // Usar PATCH
+  delete: (id: string) => apiClient.delete(`/services/${id}`).then(handleResponse),
 };
 
 // Reportes (Coincide con /api/reports/*)
 export const reportsService = {
   getDashboardStats: () => apiClient.get('/reports/dashboard').then(handleResponse),
-  getMonthlyReport: (year, month) => apiClient.get(`/reports/monthly`, { params: { year, month } }).then(handleResponse),
-  getCustomerHistory: (id) => apiClient.get(`/reports/customer-history/${id}`).then(handleResponse),
+  getMonthlyReport: (year: number, month: number) => apiClient.get(`/reports/monthly`, { params: { year, month } }).then(handleResponse),
+  getCustomerHistory: (id: string) => apiClient.get(`/reports/customer-history/${id}`).then(handleResponse),
+};
+
+// Estados (Coincide con /api/statuses/*)
+export const statusesService = {
+  getAll: () => apiClient.get('/statuses').then(handleResponse),
 };
 
 // Función de utilidad para verificar la conectividad del backend
@@ -116,7 +135,7 @@ export const checkConnectivity = async () => {
     const response = await apiClient.get('/products', { timeout: 3000 });
     // Si la respuesta es 2xx, el backend está accesible
     return { success: response.status >= 200 && response.status < 300, status: response.status };
-  } catch (error) {
+  } catch (error: any) {
     console.error('⚠️ Backend connectivity check failed:', error.message);
     return { success: false, error: error.message };
   }

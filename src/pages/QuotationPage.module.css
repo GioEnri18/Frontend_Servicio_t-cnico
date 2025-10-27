@@ -122,6 +122,20 @@
   font-size: 1rem;
   transition: all 0.3s ease;
   background: white;
+  color: #2d3748;
+}
+
+.select option {
+  background: white;
+  color: #2d3748;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+.select option:hover,
+.select option:checked {
+  background: #667eea;
+  color: white;
 }
 
 .input:focus,
@@ -236,6 +250,128 @@
   background: #667eea;
   color: white;
   transform: translateY(-2px);
+}
+
+/* Nuevos estilos para el formulario mejorado */
+.pageSubtitle {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.labelHint {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #718096;
+  margin-left: 0.5rem;
+}
+
+.inputError {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2;
+}
+
+.errorMessage {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.charCount {
+  text-align: right;
+  font-size: 0.875rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
+
+.fileInput {
+  padding: 0.75rem;
+  border: 2px dashed #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: white;
+  color: #2d3748;
+  cursor: pointer;
+}
+
+.fileInput:hover {
+  border-color: #667eea;
+  background: #f7fafc;
+}
+
+.photoPreview {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+}
+
+.photoCount {
+  color: #16a34a;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.6s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.quotationDetails {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: #f7fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detailRow:last-child {
+  border-bottom: none;
+}
+
+.detailLabel {
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 0.95rem;
+}
+
+.detailValue {
+  color: #2d3748;
+  font-size: 1rem;
+}
+
+.statusBadge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Responsive Design */
